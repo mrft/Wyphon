@@ -57,9 +57,11 @@
   <ItemGroup>
     <ClCompile Include="AssemblyInfo.cpp" />
     <ClCompile Include="LocalMessageBroadcast.cpp" />
+    <ClCompile Include="SharedMemory.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="LocalMessageBroadcast.h" />
+    <ClInclude Include="SharedMemory.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />

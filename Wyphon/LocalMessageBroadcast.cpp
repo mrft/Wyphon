@@ -69,26 +69,6 @@
 //	pCreateSharedMemoryFUNC CreateSharedMemory = (pCreateSharedMemoryFUNC)lpfnCreateSharedMemory;
 ////}
 
-//this code gets run whenever the dll gets loaded or unloaded, so we can do the setup/teardown in here
-#pragma unmanaged
-BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpReserved) 
-{
-	switch( fdwReason ) 
-	{ 
-		case DLL_PROCESS_ATTACH:
-		break;
-		case DLL_THREAD_ATTACH:
-		break;
-		case DLL_THREAD_DETACH:
-		break;
-		case DLL_PROCESS_DETACH:
-		break;
-	}
-	
-	return TRUE;  
-}
-
-
 
 /*
 	The LocalMessageBroadcastPartner descriptor should hold all of the necessary information 
@@ -144,6 +124,7 @@ namespace LocalMessageBroadcast {
 	#define LOCAL_MSG_BROADCAST_INITIAL_NUMBER_OF_PARTNERS 	2
 	#define LOCAL_MSG_BROADCAST_MAX_NUMBER_OF_PARTNERS 		128
 
+	#define READERMAILSLOT_TIMEOUT							1000
 
 	//CALLBACK DEFINITIONS: see .h file !!!
 	//typedef bool ( * LPPartnerJoinedCALLBACK)( HANDLE localMessageBroadcastPartnerHandle, unsigned int sendingPartnerId );
@@ -349,7 +330,7 @@ namespace LocalMessageBroadcast {
 		
 		pLocalMessageBroadcastPartner->hReaderMailslot = CreateMailslot( 	name.c_str(), 
 													        0,                             // no maximum message size 
-													        5000, //MAILSLOT_WAIT_FOREVER,         // no time-out for operations 
+													        READERMAILSLOT_TIMEOUT, //MAILSLOT_WAIT_FOREVER,         // no time-out for operations 
 													        (LPSECURITY_ATTRIBUTES) NULL); // default security
 		
 		if ( pLocalMessageBroadcastPartner->hReaderMailslot == INVALID_HANDLE_VALUE ) { 
@@ -367,8 +348,8 @@ namespace LocalMessageBroadcast {
 		
 		BOOL success = true;
 
-	    wcout << "Trying pLocalMessageBroadcastPartner->writerMailslotHandlesMap->size()" << "\n";
-	    wcout << pLocalMessageBroadcastPartner->writerMailslotHandlesMap->size() << "\n";
+//	    wcout << "Trying pLocalMessageBroadcastPartner->writerMailslotHandlesMap->size()" << "\n";
+//	    wcout << pLocalMessageBroadcastPartner->writerMailslotHandlesMap->size() << "\n";
 
 		if ( pLocalMessageBroadcastPartner->writerMailslotHandlesMap->size() > 0 ) {
 			map<unsigned int, HANDLE>::iterator itr;
@@ -646,7 +627,7 @@ namespace LocalMessageBroadcast {
 		
 //		wcout << "ListenerThread function: " << *(pLocalMessageBroadcastPartner->myName) << "\n";
 
-		DWORD readTimeout = 5000;
+		DWORD readTimeout = READERMAILSLOT_TIMEOUT;
 		//SetMailslotInfo( pLocalMessageBroadcastPartner->hReaderMailslot, readTimeout );			
 
 
@@ -734,7 +715,8 @@ namespace LocalMessageBroadcast {
 
 		//Stop listening for new messages
 		pLocalMessageBroadcastPartner->listenerThreadRunning = false;
-
+		//Wait until listenerThread is done
+		Sleep(READERMAILSLOT_TIMEOUT + 200);
 
 		//Remove yourself from sharedMemory
 		bool success = false;
@@ -787,9 +769,9 @@ namespace LocalMessageBroadcast {
 		int dataSize = CreateGoodbyeMessage(pLocalMessageBroadcastPartner, &data);
 		
 		wcout << "Trying to write goodbye message to all parter mailslots" << "\n";
-	    wcout << "Trying pLocalMessageBroadcastPartner = " << pLocalMessageBroadcastPartner << "\n";
-	    wcout << "Trying pLocalMessageBroadcastPartner->writerMailslotHandlesMap->size()" << "\n";
-	    wcout << pLocalMessageBroadcastPartner->writerMailslotHandlesMap->size() << "\n";
+//	    wcout << "Trying pLocalMessageBroadcastPartner = " << pLocalMessageBroadcastPartner << "\n";
+//	    wcout << "Trying pLocalMessageBroadcastPartner->writerMailslotHandlesMap->size()" << "\n";
+//	    wcout << pLocalMessageBroadcastPartner->writerMailslotHandlesMap->size() << "\n";
 		WriteToAllMailslots( pLocalMessageBroadcastPartner, (BYTE *) data, dataSize );
 		
 		wcout << "Trying to delete goodbye message" << "\n";
@@ -867,6 +849,7 @@ namespace LocalMessageBroadcast {
 		
 //		wcout << "Try to open mailslots for every handle that is already in shared data..." << "\n";
 //		wcout << "LockSharedMemory" << "\n";
+		bool allMailslotsReady = false;
 		if ( LockSharedMemory( pLocalMessageBroadcastPartner->hSharedMemory, 1000 ) ) {
 			
 			BYTE * idBytes = NULL;
@@ -917,17 +900,8 @@ namespace LocalMessageBroadcast {
 						}
 */
 
-//						wcout << "Now try to create a 'hello' message" << "\n";
 
-						//Write a 'hello' message to all writermailslots
-						BYTE * data;
-						int dataSize = CreateHelloMessage(pLocalMessageBroadcastPartner, &data);
-	
-//						wcout << "'hello' message created, try to send it to all partners by writing it to their mailslots..." << "\n";
-	
-						WriteToAllMailslots( pLocalMessageBroadcastPartner, (BYTE *) data, dataSize );
-						
-						delete data;
+						allMailslotsReady = true;
 					}
 				}
 				else {
@@ -947,8 +921,21 @@ namespace LocalMessageBroadcast {
 		pLocalMessageBroadcastPartner->listenerThreadRunning = true;
 		_beginthread( ListenerThread, 0, &pLocalMessageBroadcastPartner );
 		
-		Sleep(100L);
-		
+		Sleep(50L);
+
+		if ( allMailslotsReady ) {
+//			wcout << "Now try to create a 'hello' message" << "\n";
+			//Write a 'hello' message to all writermailslots
+			BYTE * data;
+			int dataSize = CreateHelloMessage(pLocalMessageBroadcastPartner, &data);
+
+//						wcout << "'hello' message created, try to send it to all partners by writing it to their mailslots..." << "\n";
+
+			WriteToAllMailslots( pLocalMessageBroadcastPartner, (BYTE *) data, dataSize );
+			
+			delete data;
+		}
+
 		wcout << "Finally return the handle " << pLocalMessageBroadcastPartner << "\n";
 		
 		//Sleep(20000L);
@@ -961,7 +948,7 @@ namespace LocalMessageBroadcast {
 	bool BroadcastMessage(HANDLE localMessageBroadcastPartnerHandle, void * data, unsigned int length) {
 		LocalMessageBroadcastPartnerDescriptor * pLocalMessageBroadcastPartner = (LocalMessageBroadcastPartnerDescriptor *) localMessageBroadcastPartnerHandle;
 
-//		wcout << "Trying to CreateMessage" << pLocalMessageBroadcastPartner << " of length " << length << "\n";
+		wcout << "Trying to CreateMessage " << pLocalMessageBroadcastPartner << " of length " << length << "\n";
 
 		BYTE * msgData;
 		int msgDataSize = CreateMessage(pLocalMessageBroadcastPartner, data, length, &msgData);
@@ -969,13 +956,13 @@ namespace LocalMessageBroadcast {
 		bool success = msgDataSize > 0;
 
 		if ( success ) {
-			//wcout << "Trying to WriteToAllMailslots" << pLocalMessageBroadcastPartner << "\n";
+			wcout << "Trying to WriteToAllMailslots" << pLocalMessageBroadcastPartner << "\n";
 
 			success = WriteToAllMailslots( pLocalMessageBroadcastPartner, msgData, msgDataSize );
 			delete msgData;
 		}
 
-		//wcout << "Shared object with handle=" << pObject->hSharedTexture << " " << pObject->width << "x" << pObject->height << "\n";
+//		wcout << "Shared object with handle=" << pObject->hSharedTexture << " " << pObject->width << "x" << pObject->height << "\n";
 		
 		return success;
 	}
