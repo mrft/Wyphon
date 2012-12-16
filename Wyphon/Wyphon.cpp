@@ -26,11 +26,7 @@ using namespace LocalMessageBroadcast;
 //	Define the Functions in the DLL for reuse. This is just prototyping the dll's function. 
 //	A mock of it. Use "stdcall" for maximum compatibility.
 
-//typedef bool ( * LPPartnerJoinedCALLBACK)( HANDLE localMessageBroadcastPartnerHandle, unsigned int sendingPartnerId, void * customData );
-//typedef bool ( * LPPartnerLeftCALLBACK)( HANDLE localMessageBroadcastPartnerHandle, unsigned int sendingPartnerId, void * customData);
-//typedef bool ( * LPMessageReceivedCALLBACK)( HANDLE localMessageBroadcastPartnerHandle, unsigned int sendingPartnerId, void * msgData, unsigned int msgLength, void * customData );
-//
-//
+
 //typedef bool (__stdcall * pDestroyLocalMessageBroadcastPartnerFUNC)(HANDLE localMessageBroadcastPartnerHandle);
 //
 //typedef HANDLE (__stdcall * pCreateLocalMessageBroadcastPartnerFUNC)( LPTSTR lpSharedMemoryName, LPTSTR myName
@@ -108,7 +104,9 @@ namespace Wyphon {
 		
 		map<unsigned int, map<HANDLE, WyphonD3DTextureInfo* >> * sharedByPartnersD3DTexturesMap;
 
-
+		void * callbackFuncCustomData;
+		LPWyphonPartnerJoinedCALLBACK pPartnerJoinedCallbackFunc;
+		LPWyphonPartnerLeftCALLBACK pPartnerLeftCallbackFunc;
 		LPD3DTextureSharingStartedCALLBACK pD3DtextureSharingStartedCallbackFunc;
 		LPD3DTextureSharingStoppedCALLBACK pD3DtextureSharingStoppedCallbackFunc;
 	};
@@ -116,7 +114,7 @@ namespace Wyphon {
 
 	/// creates a wyphontextureinfo struct, given some parameters
 	/// should be deleted afterwards by the caller !!!
-	WyphonD3DTextureInfo * CreateWyphonD3DTextureInfo( HANDLE sharedTextureHandle, unsigned int width, unsigned int height, DWORD usage, size_t descriptionLength, LPTSTR description ) {
+	WyphonD3DTextureInfo * CreateWyphonD3DTextureInfo( HANDLE sharedTextureHandle, unsigned int width, unsigned int height, DWORD usage, size_t descriptionLength, LPTSTR description, unsigned int partnerId ) {
 		//struct WyphonD3DTextureInfo { HANDLE sharedHandle; unsigned int width; unsigned int height; int usage; //rendertarget or ... };
 		WyphonD3DTextureInfo * info = new WyphonD3DTextureInfo();
 		info->hSharedTexture = sharedTextureHandle;
@@ -126,6 +124,8 @@ namespace Wyphon {
 		int copyLength = sizeof(wchar_t) * (descriptionLength > WYPHON_MAX_DESCRIPTION_LENGTH ? WYPHON_MAX_DESCRIPTION_LENGTH : descriptionLength);
 		CopyMemory( info->description, (VOID *) description, copyLength );
 		info->description[copyLength] = '\0';
+
+		info->partnerId = partnerId;
 		
 		return info;
 	}
@@ -279,7 +279,7 @@ namespace Wyphon {
 
 
 
-	bool PartnerJoinedCallback( HANDLE localMessageBroadcastPartnerHandle, unsigned int sendingPartnerId, HANDLE wyphonPartnerHandle ) {
+	bool PartnerJoinedCallback( HANDLE localMessageBroadcastPartnerHandle, unsigned int sendingPartnerId, LPCTSTR sendingPartnerName, HANDLE wyphonPartnerHandle ) {
 		WyphonPartnerDescriptor * pWyphonPartner = (WyphonPartnerDescriptor *) wyphonPartnerHandle;
 		
 		wcout << "Wyphon: PartnerJoinedCallback: " <<  GetBroadcastPartnerName(localMessageBroadcastPartnerHandle, sendingPartnerId) << "(" << sendingPartnerId << ")" << " for wyphon handle: " << pWyphonPartner << " " << wyphonPartnerHandle << " hLMBP=" << localMessageBroadcastPartnerHandle << "\n";
@@ -302,6 +302,11 @@ namespace Wyphon {
 			}
 		}
 		
+		//call the callback function
+		if ( pWyphonPartner->pPartnerJoinedCallbackFunc != NULL ) {
+			(*(pWyphonPartner->pPartnerJoinedCallbackFunc))(pWyphonPartner, sendingPartnerId, sendingPartnerName, pWyphonPartner->callbackFuncCustomData);
+		}
+		
 		return true;
 	}
 	
@@ -311,7 +316,14 @@ namespace Wyphon {
 		wcout << "Wyphon: PartnerLeftCallback: " <<  GetBroadcastPartnerName(localMessageBroadcastPartnerHandle, sendingPartnerId) << "(" << sendingPartnerId << ")" << " for wyphon handle: " << pWyphonPartner << " " << wyphonPartnerHandle << " hLMBP=" << localMessageBroadcastPartnerHandle << "\n";
 
 		//forget about all textures shared by this partner
-		return RemoveAllD3DTexturesSharedByPartner(pWyphonPartner, sendingPartnerId);		
+		bool success = RemoveAllD3DTexturesSharedByPartner(pWyphonPartner, sendingPartnerId);
+		
+		//call the callback function
+		if ( pWyphonPartner->pPartnerLeftCallbackFunc != NULL ) {
+			(*(pWyphonPartner->pPartnerLeftCallbackFunc))(pWyphonPartner, sendingPartnerId, pWyphonPartner->callbackFuncCustomData);
+		}
+			
+		return success;
 	}
 	
 	bool MessageReceivedCallback( HANDLE localMessageBroadcastPartnerHandle, unsigned int sendingPartnerId, void * msgData, unsigned int msgLength, HANDLE wyphonPartnerHandle ) {
@@ -340,7 +352,7 @@ namespace Wyphon {
 
 		wcout << "Wyphon: ShareD3DTexture with handle=" << sharedTextureHandle << " " << width << "x" << height << "\n";
 
-		WyphonD3DTextureInfo * pTextureInfo = CreateWyphonD3DTextureInfo( sharedTextureHandle, width, height, usage, _tcslen(description), description );
+		WyphonD3DTextureInfo * pTextureInfo = CreateWyphonD3DTextureInfo( sharedTextureHandle, width, height, usage, _tcslen(description), description, GetBroadcastPartnerId(pWyphonPartner->hLocalMessageBroadcastPartner) );
 		
 		BYTE * data;
 		int dataSize = CreateShareD3DTextureMessage(pWyphonPartner, pTextureInfo, &data);
@@ -436,6 +448,9 @@ namespace Wyphon {
 
 	extern "C" _declspec(dllexport)
 	HANDLE CreateWyphonPartner( LPTSTR applicationName
+								, void * pCallbackFuncCustomData
+								, LPWyphonPartnerJoinedCALLBACK pPartnerJoinedCallbackFunc
+								, LPWyphonPartnerLeftCALLBACK pPartnerLeftCallbackFunc
 								, LPD3DTextureSharingStartedCALLBACK pD3DTextureSharingStartedCallbackFunc 
 								, LPD3DTextureSharingStoppedCALLBACK pD3DTextureSharingStoppedCallbackFunc 
 	 							) {
@@ -453,6 +468,9 @@ namespace Wyphon {
 		pWyphonPartner->sharedByUsD3DTexturesMap = new map<HANDLE, WyphonD3DTextureInfo* >();
 		pWyphonPartner->sharedByPartnersD3DTexturesMap = new map<unsigned int, map<HANDLE, WyphonD3DTextureInfo * >>();
 		
+		pWyphonPartner->callbackFuncCustomData = pCallbackFuncCustomData;
+		pWyphonPartner->pPartnerJoinedCallbackFunc = pPartnerJoinedCallbackFunc;
+		pWyphonPartner->pPartnerLeftCallbackFunc = pPartnerLeftCallbackFunc;
 		pWyphonPartner->pD3DtextureSharingStartedCallbackFunc = pD3DTextureSharingStartedCallbackFunc;
 		pWyphonPartner->pD3DtextureSharingStoppedCallbackFunc = pD3DTextureSharingStoppedCallbackFunc;
 
@@ -462,8 +480,8 @@ namespace Wyphon {
 		pWyphonPartner->hLocalMessageBroadcastPartner =
 			CreateLocalMessageBroadcastPartner( lpLocalMessageBroadcastName, applicationName 
 													, pWyphonPartner
-													, (LPPartnerJoinedCALLBACK)PartnerJoinedCallback
-													, (LPPartnerJoinedCALLBACK)PartnerLeftCallback
+													, (LPLocalMessageBroadcastPartnerJoinedCALLBACK)PartnerJoinedCallback
+													, (LPLocalMessageBroadcastPartnerLeftCALLBACK)PartnerLeftCallback
 													, (LPMessageReceivedCALLBACK)MessageReceivedCallback
 												);
 		wcout << "Wyphon: CreateLocalMessageBroadcastPartner returned " << pWyphonPartner->hLocalMessageBroadcastPartner << "\n";

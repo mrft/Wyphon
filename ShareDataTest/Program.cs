@@ -12,12 +12,20 @@ using System.Threading;
 using System.Runtime.InteropServices;
 using System.Collections.Generic;
 
+using Wyphon;
+
 namespace ShareDataTest
 {
 	class Program
 	{
 
 		#region Wyphon.dll imports & delegates
+
+		[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+		public unsafe delegate void WyphonPartnerJoinedCallbackDelegate(uint hLocalMessageBroadcastPartner, uint partnerId, IntPtr partnerNameLPTSTR, IntPtr customData);
+
+		[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+		public unsafe delegate void WyphonPartnerLeftCallbackDelegate(uint hLocalMessageBroadcastPartner, uint partnerId, IntPtr customData);
 
 		[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
 		public unsafe delegate bool D3DTextureSharingStartedCallbackDelegate( uint wyphonPartnerHandle, uint sendingPartnerId, uint sharedTextureHandle, uint width, uint height, uint usage, IntPtr descriptionLPTSTR );
@@ -43,19 +51,19 @@ namespace ShareDataTest
 		[DllImport("Wyphon", CallingConvention = CallingConvention.Cdecl)]
 		public static extern IntPtr GetWyphonPartnerName(uint wyphonPartnerHandle, uint wyphonPartnerId);
 
-		[DllImport("Wyphon", CallingConvention = CallingConvention.Cdecl)]
-		bool GetD3DTextureInfo(uint wyphonPartnerHandle, uint sharedTextureHandle, uint out wyphonPartnerId, uint out width, uint out height, uint out usage, IntPtr description, int maxDescriptionLength );
-
-		[DllImport("Wyphon", CallingConvention = CallingConvention.Cdecl)]
-		bool GetD3DTextureInfo(uint wyphonPartnerHandle, uint sharedTextureHandle, uint out wyphonPartnerId, uint out width, uint out height, uint out usage, IntPtr description, int maxDescriptionLength );
+//		[DllImport("Wyphon", CallingConvention = CallingConvention.Cdecl)]
+//		bool GetD3DTextureInfo(uint wyphonPartnerHandle, uint sharedTextureHandle, uint out wyphonPartnerId, uint out width, uint out height, uint out usage, IntPtr description, int maxDescriptionLength );
+//
+//		[DllImport("Wyphon", CallingConvention = CallingConvention.Cdecl)]
+//		bool GetD3DTextureInfo(uint wyphonPartnerHandle, uint sharedTextureHandle, uint out wyphonPartnerId, uint out width, uint out height, uint out usage, IntPtr description, int maxDescriptionLength );
 		
 		
 		
 		[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-		public unsafe delegate void PartnerJoinedCallbackDelegate(uint hLocalMessageBroadcastPartner, uint partnerId);
+		public unsafe delegate void LocalMessageBroadcastPartnerJoinedCallbackDelegate(uint hLocalMessageBroadcastPartner, uint partnerId, IntPtr partnerNameLPTSTR, IntPtr customData);
 
 		[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-		public unsafe delegate void PartnerLeftCallbackDelegate(uint hLocalMessageBroadcastPartner, uint partnerId);
+		public unsafe delegate void LocalMessageBroadcastPartnerLeftCallbackDelegate(uint hLocalMessageBroadcastPartner, uint partnerId, IntPtr customData);
 
 		[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
 		public unsafe delegate void BroadcastMessageReceivedCallbackDelegate(uint hLocalMessageBroadcastPartner, uint partnerId, IntPtr msgData, uint msgLength);
@@ -180,7 +188,9 @@ namespace ShareDataTest
 			
 			//TestSharedData();
 			
-			TestWyphon();
+			//TestWyphon();
+
+			new Program().TestWyphonDotNet();
 			
 			unsafe {
 //				Console.WriteLine( getSomeCharArray() );
@@ -204,6 +214,8 @@ namespace ShareDataTest
 			}
 			return s;
 		}
+
+#region TestLocalMessageBroadcast functions
 
 //		void BroadcastMessagePartnerJoinedCallback(uint hLocalMessageBroadcastPartner, uint partnerId) {
 ////			System.Text.StringBuilder name = new System.Text.StringBuilder();
@@ -333,8 +345,19 @@ namespace ShareDataTest
 //			
 //			
 //		}
+#endregion TestLocalMessageBroadcast functions
+
+
+		#region TestWyphon functions
+
+		public unsafe void WyphonPartnerJoinedCallback(uint hLocalMessageBroadcastPartner, uint partnerId, IntPtr partnerNameLPTSTR, IntPtr customData) {
+			
+		}
 		
-		
+		public unsafe void WyphonPartnerLeftCallback(uint hLocalMessageBroadcastPartner, uint partnerId, IntPtr customData) {
+			
+		}
+
 		static void TestWyphon() {
 			Console.Write("What's your application name: ");
 			string name = Console.ReadLine();
@@ -396,7 +419,94 @@ namespace ShareDataTest
 			//Thread.Sleep(8000);
 						
 		}
+		#endregion TestWyphon functions
+		
+		#region TestWyphonDotNet functions
+		public unsafe void WyphonDotNetPartnerJoinedCallback(uint partnerId, string partnerName) {
+			Console.WriteLine("DotNet Partner joined. Its name is " + partnerName + " and its id = " + partnerId);
+		}
+		
+		public unsafe void WyphonDotNetPartnerLeftCallback(uint partnerId) {
+			Console.WriteLine("DotNet Partner left. Its name is <whatever>" + " and its id = " + partnerId);			
+		}
 
+		private void TestWyphonDotNet() {
+			Console.Write("What's your application name: ");
+			string name = Console.ReadLine();
+			Console.WriteLine("Welcome " + name + ". You share a texture's info by typing s, and unshare by typing u afterwards<enter>");
+
+			WyphonPartner wp = new WyphonPartner(name);
+			wp.WyphonPartnerJoinedEvent += WyphonDotNetPartnerJoinedCallback;
+			wp.WyphonPartnerLeftEvent += WyphonDotNetPartnerLeftCallback;
+			wp.WyphonPartnerD3DTextureSharedEvent += 
+				delegate(uint sendingPartnerId, uint sharedTextureHandle, uint width, uint height, uint usage, string description) {
+					Console.WriteLine("DotNet new shared texture by partner " + sendingPartnerId + ". Its handle = " + sharedTextureHandle +  " and its other data = " + width + "x" + height + ":" + usage + " : " + description);
+				};
+			wp.WyphonPartnerD3DTextureUnsharedEvent += 
+				delegate(uint sendingPartnerId, uint sharedTextureHandle, uint width, uint height, uint usage, string description) {
+					Console.WriteLine("DotNet STOPPED SHARING texture by partner " + sendingPartnerId + ". Its handle = " + sharedTextureHandle +  " and its other data = " + width + "x" + height + ":" + usage + " : " + description);
+				};
+			
+			if ( wp != null ) {
+				try {
+					char input = Console.ReadKey(true).KeyChar;//.ReadLine();
+					while ( input != 'q' ) {
+						if ( input == 's' ) {
+							Console.Write("Enter description for " + name + "'s shared texture: ");
+							string textureName = Console.ReadLine();
+							uint textureHandle = 0;
+							uint textureWidth = 0;
+							uint textureHeight = 0;
+							do {
+								Console.Write("Enter handle shared texture: ");
+							} while ( ! UInt32.TryParse( Console.ReadLine(), out textureHandle ) );
+							do {
+								Console.Write("Enter width for shared texture: ");
+							} while ( ! UInt32.TryParse( Console.ReadLine(), out textureWidth ) );
+							do {
+								Console.Write("Enter height for shared texture: ");
+							} while ( ! UInt32.TryParse( Console.ReadLine(), out textureHeight ) );
+							
+							wp.ShareD3DTexture(textureHandle, textureWidth, textureHeight, 999, textureName);
+							//ShareD3DTexture( hWyphonPartner, textureHandle, textureWidth, textureHeight, 999, textureName );
+						}
+						else if ( input == 'u' ) {
+							uint textureHandle = 0;
+							do {
+								Console.Write("Enter handle for texture you want to UN-share: ");
+							} while ( ! UInt32.TryParse( Console.ReadLine(), out textureHandle ) );
+
+							wp.UnshareD3DTexture(textureHandle);
+							//UnshareD3DTexture(hWyphonPartner, textureHandle);
+						}
+						
+						input = Console.ReadKey(true).KeyChar;
+					}
+				}
+				finally {
+//					if ( wp.Dispose() ) {
+//						Console.WriteLine( "SUCCESSFULLY destroyed Wyphon Parter" );
+//					}
+//					else {
+//						Console.WriteLine( "FAILED to destroy Wyphon Parter" );
+//					}
+				}
+			}
+			else {
+				Console.WriteLine( "CreateWyphonPartner FAILED!!!" );				
+			}
+
+			Console.WriteLine( "\nPress 'q' again to really quit..." );
+			char input2 = Console.ReadKey(true).KeyChar;//.ReadLine();
+			while ( input2 != 'q' ) {
+			}
+			//Thread.Sleep(8000);
+						
+		}
+
+		#endregion TestWyphonDotNet functions
+
+#region TestSharedMemory functions
 //		static void TestSharedMemory() {
 //			uint hSharedMemory = CreateSharedMemory("MyFileMappingObject", 1, 64);
 //			if (hSharedMemory != 0) {
@@ -462,6 +572,7 @@ namespace ShareDataTest
 //			}
 //			Thread.Sleep(8000);
 //		}
+#endregion TestSharedMemory functions
 		
 		
 		/// <summary>

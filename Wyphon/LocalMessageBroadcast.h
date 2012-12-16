@@ -18,8 +18,8 @@ namespace LocalMessageBroadcast {
 
 
 	//CALLBACK DEFINITIONS
-	typedef bool ( * LPPartnerJoinedCALLBACK)( HANDLE localMessageBroadcastPartnerHandle, unsigned int sendingPartnerId, void * customData );
-	typedef bool ( * LPPartnerLeftCALLBACK)( HANDLE localMessageBroadcastPartnerHandle, unsigned int sendingPartnerId, void * customData);
+	typedef bool ( * LPLocalMessageBroadcastPartnerJoinedCALLBACK)( HANDLE localMessageBroadcastPartnerHandle, unsigned int sendingPartnerId, LPCTSTR sendingPartnerName, void * customData );
+	typedef bool ( * LPLocalMessageBroadcastPartnerLeftCALLBACK)( HANDLE localMessageBroadcastPartnerHandle, unsigned int sendingPartnerId, void * customData);
 	typedef bool ( * LPMessageReceivedCALLBACK)( HANDLE localMessageBroadcastPartnerHandle, unsigned int sendingPartnerId, void * msgData, unsigned int msgLength, void * customData );
 
 
@@ -29,8 +29,8 @@ namespace LocalMessageBroadcast {
 	extern "C" _declspec(dllexport)
 	HANDLE CreateLocalMessageBroadcastPartner( LPTSTR lpSharedMemoryName, LPTSTR myName
 		, void * callbackFuncCustomData
-		, LPPartnerJoinedCALLBACK pPartnerJoinedCallbackFunc
-		, LPPartnerLeftCALLBACK pPartnerLeftCallbackFunc
+		, LPLocalMessageBroadcastPartnerJoinedCALLBACK pPartnerJoinedCallbackFunc
+		, LPLocalMessageBroadcastPartnerLeftCALLBACK pPartnerLeftCallbackFunc
 		, LPMessageReceivedCALLBACK pMsgReceivedCallbackFunc 
 	);
 	
@@ -39,6 +39,9 @@ namespace LocalMessageBroadcast {
 
 	extern "C" _declspec(dllexport)
 	LPCTSTR GetBroadcastPartnerName(HANDLE localMessageBroadcastPartnerHandle, unsigned int partnerId);
+
+	extern "C" _declspec(dllexport)
+	unsigned int GetBroadcastPartnerId(HANDLE localMessageBroadcastPartnerHandle);
 
 //	/// <summary>
 //	///

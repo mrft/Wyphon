@@ -126,10 +126,6 @@ namespace LocalMessageBroadcast {
 
 	#define READERMAILSLOT_TIMEOUT							1000
 
-	//CALLBACK DEFINITIONS: see .h file !!!
-	//typedef bool ( * LPPartnerJoinedCALLBACK)( HANDLE localMessageBroadcastPartnerHandle, unsigned int sendingPartnerId );
-	//typedef bool ( * LPPartnerLeftCALLBACK)( HANDLE localMessageBroadcastPartnerHandle, unsigned int sendingPartnerId);
-	//typedef bool ( * LPMessageReceivedCALLBACK)( HANDLE localMessageBroadcastPartnerHandle, unsigned int sendingPartnerId, void * msgData, unsigned int msgLength );
 
 
 	//FOR INTERNAL USE ONLY
@@ -153,8 +149,8 @@ namespace LocalMessageBroadcast {
 														//wstring = name of the partner
 
 
-		LPPartnerJoinedCALLBACK partnerJoinedCallbackFunc;
-		LPPartnerLeftCALLBACK partnerLeftCallbackFunc;
+		LPLocalMessageBroadcastPartnerJoinedCALLBACK partnerJoinedCallbackFunc;
+		LPLocalMessageBroadcastPartnerLeftCALLBACK partnerLeftCallbackFunc;
 		LPMessageReceivedCALLBACK msgReceivedCallbackFunc;
 
 		void * callbackFuncCustomData;	//will be sent with Callback functions, and can contain data specific to the user
@@ -513,7 +509,7 @@ namespace LocalMessageBroadcast {
 
 		//call the callback function
 		if ( pLocalMessageBroadcastPartner->partnerJoinedCallbackFunc != NULL ) {
-			(*(pLocalMessageBroadcastPartner->partnerJoinedCallbackFunc))(pLocalMessageBroadcastPartner, partnerId, pLocalMessageBroadcastPartner->callbackFuncCustomData);
+			(*(pLocalMessageBroadcastPartner->partnerJoinedCallbackFunc))(pLocalMessageBroadcastPartner, partnerId, wstrName.c_str(), pLocalMessageBroadcastPartner->callbackFuncCustomData);
 		}
 		
 		return success;
@@ -555,7 +551,7 @@ namespace LocalMessageBroadcast {
 
 		//call the callback function
 		if ( pLocalMessageBroadcastPartner->partnerJoinedCallbackFunc != NULL ) {
-			(*(pLocalMessageBroadcastPartner->partnerJoinedCallbackFunc))(pLocalMessageBroadcastPartner, partnerId, pLocalMessageBroadcastPartner->callbackFuncCustomData);
+			(*(pLocalMessageBroadcastPartner->partnerJoinedCallbackFunc))(pLocalMessageBroadcastPartner, partnerId, wstrName.c_str(), pLocalMessageBroadcastPartner->callbackFuncCustomData);
 		}
 
 		return success;
@@ -808,8 +804,8 @@ namespace LocalMessageBroadcast {
 	extern "C" _declspec(dllexport)
 	HANDLE CreateLocalMessageBroadcastPartner( LPTSTR lpSharedMemoryName, LPTSTR myName
 		, void * callbackFuncCustomData
-		, LPPartnerJoinedCALLBACK pPartnerJoinedCallbackFunc
-		, LPPartnerLeftCALLBACK pPartnerLeftCallbackFunc
+		, LPLocalMessageBroadcastPartnerJoinedCALLBACK pPartnerJoinedCallbackFunc
+		, LPLocalMessageBroadcastPartnerLeftCALLBACK pPartnerLeftCallbackFunc
 		, LPMessageReceivedCALLBACK pMsgReceivedCallbackFunc 
 	) {
 		LocalMessageBroadcastPartnerDescriptor * pLocalMessageBroadcastPartner = new LocalMessageBroadcastPartnerDescriptor();
@@ -904,9 +900,6 @@ namespace LocalMessageBroadcast {
 						allMailslotsReady = true;
 					}
 				}
-				else {
-					//TODO Destroy everything that's been created so far and return NULL
-				}
 			}
 			delete idBytes;
 			
@@ -934,6 +927,16 @@ namespace LocalMessageBroadcast {
 			WriteToAllMailslots( pLocalMessageBroadcastPartner, (BYTE *) data, dataSize );
 			
 			delete data;
+		}
+		else {
+			//Something FAILED
+			delete pLocalMessageBroadcastPartner->sharedMemoryName;
+			delete pLocalMessageBroadcastPartner->myName;
+			delete pLocalMessageBroadcastPartner->writerMailslotHandlesMap;
+			delete pLocalMessageBroadcastPartner->partnerNamesMap;
+			
+			wcout << "Finally return the handle " << 0 << " BECAUSE SOMETHING WENT WRONG..." << "\n";
+			return NULL;
 		}
 
 		wcout << "Finally return the handle " << pLocalMessageBroadcastPartner << "\n";
@@ -985,6 +988,13 @@ namespace LocalMessageBroadcast {
 		LocalMessageBroadcastPartnerDescriptor * pLocalMessageBroadcastPartner = (LocalMessageBroadcastPartnerDescriptor *) localMessageBroadcastPartnerHandle;
 
 		return (*(pLocalMessageBroadcastPartner->partnerNamesMap))[partnerId].c_str();
+	}
+
+	extern "C" _declspec(dllexport)
+	unsigned int GetBroadcastPartnerId(HANDLE localMessageBroadcastPartnerHandle) {
+		LocalMessageBroadcastPartnerDescriptor * pLocalMessageBroadcastPartner = (LocalMessageBroadcastPartnerDescriptor *) localMessageBroadcastPartnerHandle;
+
+		return pLocalMessageBroadcastPartner->myId;
 	}
 
 }
