@@ -25,7 +25,7 @@ namespace Wyphon
 	/// Wyphon is merely a way to easily inform all of the other 'Wyphon Partners' of the textures
 	/// one application is willing to share.
 	/// </summary>
-	public class WyphonPartner
+	public class WyphonPartner : IDisposable
 	{
 		#region Wyphon.dll imports & delegates
 		
@@ -62,13 +62,16 @@ namespace Wyphon
 		[DllImport("Wyphon", CallingConvention = CallingConvention.Cdecl)]
 		private static extern IntPtr GetWyphonPartnerName(uint wyphonPartnerHandle, uint wyphonPartnerId);
 
-//		[DllImport("Wyphon", CallingConvention = CallingConvention.Cdecl)]
-//		bool GetD3DTextureInfo(uint wyphonPartnerHandle, uint sharedTextureHandle, uint out wyphonPartnerId, uint out width, uint out height, uint out usage, IntPtr description, int maxDescriptionLength );
-						
+		[DllImport("Wyphon", CallingConvention = CallingConvention.Cdecl)]
+		private static extern bool GetD3DTextureInfo(uint wyphonPartnerHandle, uint sharedTextureHandle, out uint wyphonPartnerId, out uint width, out uint height, out uint usage, ref IntPtr description, int maxDescriptionLength );
+
+		[DllImport("Wyphon", CallingConvention = CallingConvention.Cdecl)]
+		private static extern uint GetPartnerId(uint wyphonPartnerHandle);
+			
 		#endregion Wyphon.dll imports & delegates
 		
 		#region fields
-		uint wyphonPartnerHandle;
+		uint wyphonPartnerHandle = 0;
 		
 		#endregion fields
 		
@@ -127,5 +130,15 @@ namespace Wyphon
 			return UnshareD3DTexture(wyphonPartnerHandle, sharedTextureHandle);
 		}
 		
+		public uint PartnerId {
+			get { return GetPartnerId(wyphonPartnerHandle); }
+		}
+		
+		public void Dispose() {			
+			if (wyphonPartnerHandle != 0) {
+				DestroyWyphonPartner(wyphonPartnerHandle);
+				wyphonPartnerHandle = 0;
+			}
+		}
 	}
 }

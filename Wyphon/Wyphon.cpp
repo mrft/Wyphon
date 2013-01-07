@@ -395,7 +395,7 @@ namespace Wyphon {
 
 	/// unshare all of the resources that are shared by us
 	bool UnshareAllD3DTexturesSharedByUs(WyphonPartnerDescriptor * pWyphonPartner) {
-		map<HANDLE, WyphonD3DTextureInfo* > * texturesMap =  &(*(pWyphonPartner->sharedByUsD3DTexturesMap));
+		map<HANDLE, WyphonD3DTextureInfo*> * texturesMap =  &(*(pWyphonPartner->sharedByUsD3DTexturesMap));
 		map<HANDLE, WyphonD3DTextureInfo*>::iterator itr;
 
 		for ( itr = (*texturesMap).begin(); itr != (*texturesMap).end(); itr = (*texturesMap).begin() /*because current gets deleted !!!*/ ) {
@@ -529,4 +529,12 @@ namespace Wyphon {
 
 		return found;
 	}
+	
+	extern "C" _declspec(dllexport)
+	unsigned int GetPartnerId(HANDLE wyphonPartnerHandle) {
+		WyphonPartnerDescriptor * pWyphonPartner = (WyphonPartnerDescriptor *) wyphonPartnerHandle;
+	
+		return GetBroadcastPartnerId(pWyphonPartner->hLocalMessageBroadcastPartner);
+	}
+
 }
