@@ -439,16 +439,18 @@ namespace ShareDataTest
 			wp.WyphonPartnerJoinedEvent += WyphonDotNetPartnerJoinedCallback;
 			wp.WyphonPartnerLeftEvent += WyphonDotNetPartnerLeftCallback;
 			wp.WyphonPartnerD3DTextureSharedEvent += 
-				delegate(uint sendingPartnerId, uint sharedTextureHandle, uint width, uint height, uint usage, string description) {
+				delegate(uint sendingPartnerId, uint sharedTextureHandle, uint width, uint height, uint format, uint usage, string description) {
 					Console.WriteLine("DotNet new shared texture by partner " + sendingPartnerId + ". Its handle = " + sharedTextureHandle +  " and its other data = " + width + "x" + height + ":" + usage + " : " + description);
 				};
 			wp.WyphonPartnerD3DTextureUnsharedEvent += 
-				delegate(uint sendingPartnerId, uint sharedTextureHandle, uint width, uint height, uint usage, string description) {
+				delegate(uint sendingPartnerId, uint sharedTextureHandle, uint width, uint height, uint format, uint usage, string description) {
 					Console.WriteLine("DotNet STOPPED SHARING texture by partner " + sendingPartnerId + ". Its handle = " + sharedTextureHandle +  " and its other data = " + width + "x" + height + ":" + usage + " : " + description);
 				};
 			
 			if ( wp != null ) {
 				try {
+					Console.WriteLine("We have ID = " + wp.PartnerId);
+					
 					char input = Console.ReadKey(true).KeyChar;//.ReadLine();
 					while ( input != 'q' ) {
 						if ( input == 's' ) {
@@ -467,7 +469,7 @@ namespace ShareDataTest
 								Console.Write("Enter height for shared texture: ");
 							} while ( ! UInt32.TryParse( Console.ReadLine(), out textureHeight ) );
 							
-							wp.ShareD3DTexture(textureHandle, textureWidth, textureHeight, 999, textureName);
+							wp.ShareD3DTexture(textureHandle, textureWidth, textureHeight, 21, 999, textureName);
 							//ShareD3DTexture( hWyphonPartner, textureHandle, textureWidth, textureHeight, 999, textureName );
 						}
 						else if ( input == 'u' ) {
@@ -484,12 +486,8 @@ namespace ShareDataTest
 					}
 				}
 				finally {
-//					if ( wp.Dispose() ) {
-//						Console.WriteLine( "SUCCESSFULLY destroyed Wyphon Parter" );
-//					}
-//					else {
-//						Console.WriteLine( "FAILED to destroy Wyphon Parter" );
-//					}
+					
+					wp.Dispose();
 				}
 			}
 			else {

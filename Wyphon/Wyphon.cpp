@@ -68,7 +68,7 @@ using namespace LocalMessageBroadcast;
 	So, we are setting up communication with everyone else who is participating. Every message will 
 	be sent to every partner.
 	There will be multiple types of messages:
-	- Hey, I have a texture to share with all of you. Here are its coördinates. (width, height, handle, usage, ...)
+	- Hey, I have a texture to share with all of you. Here are its coördinates. (width, height, handle, format, usage, ...)
 	- Hey, the following texture will no longer be valid, here's the handle.
 	- Hey, I have a ... to share with all of you.
 	- etc.
@@ -114,12 +114,13 @@ namespace Wyphon {
 
 	/// creates a wyphontextureinfo struct, given some parameters
 	/// should be deleted afterwards by the caller !!!
-	WyphonD3DTextureInfo * CreateWyphonD3DTextureInfo( HANDLE sharedTextureHandle, unsigned int width, unsigned int height, DWORD usage, size_t descriptionLength, LPTSTR description, unsigned int partnerId ) {
+	WyphonD3DTextureInfo * CreateWyphonD3DTextureInfo( HANDLE sharedTextureHandle, unsigned int width, unsigned int height, DWORD format, DWORD usage, size_t descriptionLength, LPTSTR description, unsigned int partnerId ) {
 		//struct WyphonD3DTextureInfo { HANDLE sharedHandle; unsigned int width; unsigned int height; int usage; //rendertarget or ... };
 		WyphonD3DTextureInfo * info = new WyphonD3DTextureInfo();
 		info->hSharedTexture = sharedTextureHandle;
 		info->width = width;
 		info->height = height;
+		info->format = format;
 		info->usage = usage;
 		int copyLength = sizeof(wchar_t) * (descriptionLength > WYPHON_MAX_DESCRIPTION_LENGTH ? WYPHON_MAX_DESCRIPTION_LENGTH : descriptionLength);
 		CopyMemory( info->description, (VOID *) description, copyLength );
@@ -249,7 +250,7 @@ namespace Wyphon {
 		bool success = AddD3DTextureSharedByPartner(pWyphonPartner, sendingPartnerId, pTextureInfo);
 		
 		if ( pWyphonPartner->pD3DtextureSharingStartedCallbackFunc != NULL ) {
-			pWyphonPartner->pD3DtextureSharingStartedCallbackFunc(pWyphonPartner, sendingPartnerId, pTextureInfo->hSharedTexture, pTextureInfo->width, pTextureInfo->height, pTextureInfo->usage, pTextureInfo->description );
+			pWyphonPartner->pD3DtextureSharingStartedCallbackFunc(pWyphonPartner, sendingPartnerId, pTextureInfo->hSharedTexture, pTextureInfo->width, pTextureInfo->height, pTextureInfo->format, pTextureInfo->usage, pTextureInfo->description );
 		}
 		
 		return success;
@@ -269,7 +270,7 @@ namespace Wyphon {
 		if ( pWyphonPartner->pD3DtextureSharingStoppedCallbackFunc != NULL ) {
 			WyphonD3DTextureInfo* pTextureInfo = ( ( * ( pWyphonPartner->sharedByPartnersD3DTexturesMap ) )[sendingPartnerId])[textureHandle];
 			//HANDLE sharedTextureHandle, unsigned int width, unsigned int height, DWORD usage, LPTSTR description
-			pWyphonPartner->pD3DtextureSharingStoppedCallbackFunc( pWyphonPartner, sendingPartnerId, pTextureInfo->hSharedTexture, pTextureInfo->width, pTextureInfo->height, pTextureInfo->usage, pTextureInfo->description );
+			pWyphonPartner->pD3DtextureSharingStoppedCallbackFunc( pWyphonPartner, sendingPartnerId, pTextureInfo->hSharedTexture, pTextureInfo->width, pTextureInfo->height, pTextureInfo->format, pTextureInfo->usage, pTextureInfo->description );
 		}
 
 		bool success = RemoveD3DTextureSharedByPartner(pWyphonPartner, sendingPartnerId, textureHandle);
@@ -347,12 +348,12 @@ namespace Wyphon {
 
 
 	extern "C" _declspec(dllexport)
-	bool ShareD3DTexture(HANDLE wyphonPartnerHandle, HANDLE sharedTextureHandle, unsigned int width, unsigned int height, DWORD usage, LPTSTR description) {
+	bool ShareD3DTexture(HANDLE wyphonPartnerHandle, HANDLE sharedTextureHandle, unsigned int width, unsigned int height, DWORD format, DWORD usage, LPTSTR description) {
 		WyphonPartnerDescriptor * pWyphonPartner = (WyphonPartnerDescriptor *) wyphonPartnerHandle;
 
 		wcout << "Wyphon: ShareD3DTexture with handle=" << sharedTextureHandle << " " << width << "x" << height << "\n";
 
-		WyphonD3DTextureInfo * pTextureInfo = CreateWyphonD3DTextureInfo( sharedTextureHandle, width, height, usage, _tcslen(description), description, GetBroadcastPartnerId(pWyphonPartner->hLocalMessageBroadcastPartner) );
+		WyphonD3DTextureInfo * pTextureInfo = CreateWyphonD3DTextureInfo( sharedTextureHandle, width, height, format, usage, _tcslen(description), description, GetBroadcastPartnerId(pWyphonPartner->hLocalMessageBroadcastPartner) );
 		
 		BYTE * data;
 		int dataSize = CreateShareD3DTextureMessage(pWyphonPartner, pTextureInfo, &data);
@@ -505,7 +506,7 @@ namespace Wyphon {
 	}
 
 	extern "C" _declspec(dllexport)
-	bool GetD3DTextureInfo(HANDLE wyphonPartnerHandle, HANDLE sharedTextureHandle, unsigned int & wyphonPartnerId, unsigned int & width, unsigned int & height, DWORD & usage, LPTSTR description, int maxDescriptionLength ) {
+	bool GetD3DTextureInfo(HANDLE wyphonPartnerHandle, HANDLE sharedTextureHandle, unsigned int & wyphonPartnerId, unsigned int & width, unsigned int & height, DWORD & format, DWORD & usage, LPTSTR description, int maxDescriptionLength ) {
 		WyphonPartnerDescriptor * pWyphonPartner = (WyphonPartnerDescriptor *) wyphonPartnerHandle;
 		
 		bool found = false;
@@ -514,12 +515,13 @@ namespace Wyphon {
 		map<unsigned int, map<HANDLE, WyphonD3DTextureInfo*>>::iterator itr;
 		for ( itr = tMap->begin(); itr != tMap->end(); itr++ ) {
 			wcout << "Wyphon: GetD3DTextureInfo " << itr->first << "\n";
-						
+			
 			if ( (itr->second)[sharedTextureHandle] != NULL ) {
 				wyphonPartnerId = itr->first;
 				WyphonD3DTextureInfo * pTextureInfo = (itr->second)[sharedTextureHandle];
 				width = pTextureInfo->width;
 				height = pTextureInfo->height;
+				format = pTextureInfo->format;
 				usage = pTextureInfo->usage;
 				
 				found = true;

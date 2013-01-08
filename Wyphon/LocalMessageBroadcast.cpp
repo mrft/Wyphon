@@ -854,7 +854,11 @@ namespace LocalMessageBroadcast {
 
 //			wcout << "I found " << nrOfIds << " ids in shared data..." << "\n";
 
-			if ( nrOfIds > 0 && CreateWriterMailslots(pLocalMessageBroadcastPartner, ids, nrOfIds) ) {
+			if ( nrOfIds > 0 ) {
+				
+				//Some mailslots may fail, they probably forgot to 'unregister' themselves from shared memory or something else went wrong, but we don't care
+				CreateWriterMailslots(pLocalMessageBroadcastPartner, ids, nrOfIds);
+				
 				//create your own mailslot and
 				//advertise your existence in the shared memory, and to all of the partner mailslots
 
