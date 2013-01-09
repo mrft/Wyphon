@@ -274,7 +274,7 @@ namespace LocalMessageBroadcast {
 							(HANDLE) NULL); 
 	
 		if (hFile == INVALID_HANDLE_VALUE) { 
-			wcout << "CreateFile failed with " << GetLastError() << ".\n";
+//			wcout << "CreateFile failed with " << GetLastError() << ".\n";
 						
 			return false; 
 		}
@@ -330,7 +330,7 @@ namespace LocalMessageBroadcast {
 													        (LPSECURITY_ATTRIBUTES) NULL); // default security
 		
 		if ( pLocalMessageBroadcastPartner->hReaderMailslot == INVALID_HANDLE_VALUE ) { 
-			wcout << "CreateMailslot (" << name << ") failed with " << GetLastError() << "\n";
+//			wcout << "CreateMailslot (" << name << ") failed with " << GetLastError() << "\n";
 			return FALSE; 
 		} 
 	    else {
@@ -350,14 +350,14 @@ namespace LocalMessageBroadcast {
 		if ( pLocalMessageBroadcastPartner->writerMailslotHandlesMap->size() > 0 ) {
 			map<unsigned int, HANDLE>::iterator itr;
 			
-		    wcout << "Found " << pLocalMessageBroadcastPartner->writerMailslotHandlesMap->size() << " partners, so get an iterator and try to send the message to all of them." << "\n";
+//		    wcout << "Found " << pLocalMessageBroadcastPartner->writerMailslotHandlesMap->size() << " partners, so get an iterator and try to send the message to all of them." << "\n";
 			
 			for ( itr = pLocalMessageBroadcastPartner->writerMailslotHandlesMap->begin(); itr != pLocalMessageBroadcastPartner->writerMailslotHandlesMap->end(); ++itr ) {
 				HANDLE hFile = itr->second;
 				BOOL fResult;
 				DWORD cbWritten; 
 	
-		    	wcout << "Try to write to mailsot " << hFile << " aka " << itr->second << "\n";
+//		    	wcout << "Try to write to mailsot " << hFile << " aka " << itr->second << "\n";
 				
 				fResult = WriteFile(hFile, data, len, &cbWritten, (LPOVERLAPPED) NULL);
 	
@@ -371,7 +371,7 @@ namespace LocalMessageBroadcast {
 			}
 		}
 		else {
-		    wcout << "No partner mailslots found, so do nothing..." << "\n";			
+//		    wcout << "No partner mailslots found, so do nothing..." << "\n";			
 		}
 		
 		return success;
@@ -397,6 +397,11 @@ namespace LocalMessageBroadcast {
 		len = pLocalMessageBroadcastPartner->myName->length() * sizeof(wchar_t);
 		CopyMemory( addr, (VOID *) pLocalMessageBroadcastPartner->myName->c_str(), len );
 		addr += len;
+		
+		if ( dataSize != addr - (*data) ) {
+//			wcout << "WHAT'S THIS??? dataSize = " << dataSize << " but addr - data = " << addr - (*data) << "\n";
+			throw L"[CreateHelloMessage] dataSize and real length of generated message don't match"; //10;
+		}
 		
 		return dataSize;
 	}
@@ -460,11 +465,11 @@ namespace LocalMessageBroadcast {
 		size_t name_length = *((size_t *)pData);
 		
 		pData += sizeof(size_t);
-		WCHAR * name = (WCHAR*)pData;
+		wchar_t * name = (wchar_t*)pData;
 
 		//wcout << "The new message partnerId = " << partnerId << " and name has length " << name_length << "\n";
 
-		wstring wstrName;
+		wstring wstrName(L"");
 		wstrName.append( name, name_length );
 		
 		//wcout << " and name = " << wstrName << "\n";
@@ -528,11 +533,11 @@ namespace LocalMessageBroadcast {
 		size_t name_length = *((size_t *)pData);
 		
 		pData += sizeof(size_t);
-		WCHAR * name = (WCHAR*)pData;
+		wchar_t * name = (wchar_t*)pData;
 
 		//wcout << "The new message partnerId = " << partnerId << " and name has length " << name_length << "\n";
 
-		wstring wstrName;
+		wstring wstrName(L"");
 		wstrName.append( name, name_length );
 		
 		//wcout << " and name = " << wstrName << "\n";
@@ -707,7 +712,7 @@ namespace LocalMessageBroadcast {
 	bool DestroyLocalMessageBroadcastPartner(HANDLE localMessageBroadcastPartnerHandle) {
 		LocalMessageBroadcastPartnerDescriptor * pLocalMessageBroadcastPartner = (LocalMessageBroadcastPartnerDescriptor *) localMessageBroadcastPartnerHandle;
 
-		wcout << "Trying to DestroyLocalMessageBroadcastPartner " << pLocalMessageBroadcastPartner << "\n";
+//		wcout << "Trying to DestroyLocalMessageBroadcastPartner " << pLocalMessageBroadcastPartner << "\n";
 
 		//Stop listening for new messages
 		pLocalMessageBroadcastPartner->listenerThreadRunning = false;
@@ -717,16 +722,16 @@ namespace LocalMessageBroadcast {
 		//Remove yourself from sharedMemory
 		bool success = false;
 
-		wcout << "Trying to LockSharedMemory" << "\n";
+//		wcout << "Trying to LockSharedMemory" << "\n";
 
 		if ( LockSharedMemory( pLocalMessageBroadcastPartner->hSharedMemory, 2000 ) ) {
-			wcout << "Trying to DestroyReaderMailslot" << "\n";
+//			wcout << "Trying to DestroyReaderMailslot" << "\n";
 
 			//close readermailslot: stop listening to new messages
 			DestroyReaderMailslot(pLocalMessageBroadcastPartner);
 
 
-			wcout << "Trying to read shared memory" << "\n";
+//			wcout << "Trying to read shared memory" << "\n";
 			
 			BYTE * idBytes = NULL;
 			int nrOfIds = ReadSharedMemory( pLocalMessageBroadcastPartner->hSharedMemory, idBytes ) / sizeof(unsigned int);
@@ -741,10 +746,10 @@ namespace LocalMessageBroadcast {
 				}
 			}
 
-			wcout << "delete read bytes" << "\n";
+//			wcout << "delete read bytes" << "\n";
 			delete idBytes;
 
-			wcout << "Trying to write to shared memory at position " << ourPosition << "\n";
+//			wcout << "Trying to write to shared memory at position " << ourPosition << "\n";
 
 			unsigned int zero = 0;
 			//Remove yourself from the list
@@ -760,20 +765,20 @@ namespace LocalMessageBroadcast {
 
 		
 		//Write a 'goodbye' message to all writermailslots
-		wcout << "Trying to create goodbye message" << "\n";
+//		wcout << "Trying to create goodbye message" << "\n";
 		BYTE * data;
 		int dataSize = CreateGoodbyeMessage(pLocalMessageBroadcastPartner, &data);
 		
-		wcout << "Trying to write goodbye message to all parter mailslots" << "\n";
+//		wcout << "Trying to write goodbye message to all parter mailslots" << "\n";
 //	    wcout << "Trying pLocalMessageBroadcastPartner = " << pLocalMessageBroadcastPartner << "\n";
 //	    wcout << "Trying pLocalMessageBroadcastPartner->writerMailslotHandlesMap->size()" << "\n";
 //	    wcout << pLocalMessageBroadcastPartner->writerMailslotHandlesMap->size() << "\n";
 		WriteToAllMailslots( pLocalMessageBroadcastPartner, (BYTE *) data, dataSize );
 		
-		wcout << "Trying to delete goodbye message" << "\n";
+//		wcout << "Trying to delete goodbye message" << "\n";
 		delete data;
 
-		wcout << "Trying to destroy writer mailslots" << "\n";
+//		wcout << "Trying to destroy writer mailslots" << "\n";
 
 		//close all writermailslots
 		DestroyWriterMailslots(pLocalMessageBroadcastPartner);
@@ -787,7 +792,7 @@ namespace LocalMessageBroadcast {
 		//HANDLE hReaderMailslot;
 		//map<HANDLE, wstring> writerMailslotsMap;
 
-		wcout << "Trying to delete all memory that has been allocated..." << "\n";
+//		wcout << "Trying to delete all memory that has been allocated..." << "\n";
 
 		delete pLocalMessageBroadcastPartner->partnerNamesMap;
 		delete pLocalMessageBroadcastPartner->writerMailslotHandlesMap;
@@ -795,7 +800,7 @@ namespace LocalMessageBroadcast {
 		
 		delete pLocalMessageBroadcastPartner;
 		
-		wcout << "Done..." << "\n";
+//		wcout << "Done..." << "\n";
 		
 		return success;
 	}
@@ -939,11 +944,11 @@ namespace LocalMessageBroadcast {
 			delete pLocalMessageBroadcastPartner->writerMailslotHandlesMap;
 			delete pLocalMessageBroadcastPartner->partnerNamesMap;
 			
-			wcout << "Finally return the handle " << 0 << " BECAUSE SOMETHING WENT WRONG..." << "\n";
+//			wcout << "Finally return the handle " << 0 << " BECAUSE SOMETHING WENT WRONG..." << "\n";
 			return NULL;
 		}
 
-		wcout << "Finally return the handle " << pLocalMessageBroadcastPartner << "\n";
+//		wcout << "Finally return the handle " << pLocalMessageBroadcastPartner << "\n";
 		
 		//Sleep(20000L);
 		
@@ -955,7 +960,7 @@ namespace LocalMessageBroadcast {
 	bool BroadcastMessage(HANDLE localMessageBroadcastPartnerHandle, void * data, unsigned int length) {
 		LocalMessageBroadcastPartnerDescriptor * pLocalMessageBroadcastPartner = (LocalMessageBroadcastPartnerDescriptor *) localMessageBroadcastPartnerHandle;
 
-		wcout << "Trying to CreateMessage " << pLocalMessageBroadcastPartner << " of length " << length << "\n";
+//		wcout << "Trying to CreateMessage " << pLocalMessageBroadcastPartner << " of length " << length << "\n";
 
 		BYTE * msgData;
 		int msgDataSize = CreateMessage(pLocalMessageBroadcastPartner, data, length, &msgData);
@@ -963,7 +968,7 @@ namespace LocalMessageBroadcast {
 		bool success = msgDataSize > 0;
 
 		if ( success ) {
-			wcout << "Trying to WriteToAllMailslots" << pLocalMessageBroadcastPartner << "\n";
+//			wcout << "Trying to WriteToAllMailslots" << pLocalMessageBroadcastPartner << "\n";
 
 			success = WriteToAllMailslots( pLocalMessageBroadcastPartner, msgData, msgDataSize );
 			delete msgData;

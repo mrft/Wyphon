@@ -245,7 +245,7 @@ namespace Wyphon {
 		WyphonD3DTextureInfo * pTextureInfo = new WyphonD3DTextureInfo(); //(WyphonD3DTextureInfo *)pData;		
 		CopyMemory(pTextureInfo, (VOID *) pData, len );
 
-		wcout << "Wyphon: Texture shared by " <<  GetBroadcastPartnerName(pWyphonPartner->hLocalMessageBroadcastPartner, sendingPartnerId) << "(" << sendingPartnerId << ")" << " handle=" << pTextureInfo->hSharedTexture << " " << pTextureInfo->width << "x" << pTextureInfo->height << " named '" << pTextureInfo->description << "'" << "\n";
+//		wcout << "Wyphon: Texture shared by " <<  GetBroadcastPartnerName(pWyphonPartner->hLocalMessageBroadcastPartner, sendingPartnerId) << "(" << sendingPartnerId << ")" << " handle=" << pTextureInfo->hSharedTexture << " " << pTextureInfo->width << "x" << pTextureInfo->height << " named '" << pTextureInfo->description << "'" << "\n";
 		
 		bool success = AddD3DTextureSharedByPartner(pWyphonPartner, sendingPartnerId, pTextureInfo);
 		
@@ -265,7 +265,7 @@ namespace Wyphon {
 		int len = sizeof(HANDLE);
 		HANDLE textureHandle = *((HANDLE *)pData);
 		
-		wcout << "Wyphon: Texture NOT shared ANYMORE  by " <<  GetBroadcastPartnerName(pWyphonPartner->hLocalMessageBroadcastPartner, sendingPartnerId) << "(" << sendingPartnerId << ")" << " handle=" << textureHandle << "\n";
+//		wcout << "Wyphon: Texture NOT shared ANYMORE  by " <<  GetBroadcastPartnerName(pWyphonPartner->hLocalMessageBroadcastPartner, sendingPartnerId) << "(" << sendingPartnerId << ")" << " handle=" << textureHandle << "\n";
 
 		if ( pWyphonPartner->pD3DtextureSharingStoppedCallbackFunc != NULL ) {
 			WyphonD3DTextureInfo* pTextureInfo = ( ( * ( pWyphonPartner->sharedByPartnersD3DTexturesMap ) )[sendingPartnerId])[textureHandle];
@@ -283,7 +283,7 @@ namespace Wyphon {
 	bool PartnerJoinedCallback( HANDLE localMessageBroadcastPartnerHandle, unsigned int sendingPartnerId, LPCTSTR sendingPartnerName, HANDLE wyphonPartnerHandle ) {
 		WyphonPartnerDescriptor * pWyphonPartner = (WyphonPartnerDescriptor *) wyphonPartnerHandle;
 		
-		wcout << "Wyphon: PartnerJoinedCallback: " <<  GetBroadcastPartnerName(localMessageBroadcastPartnerHandle, sendingPartnerId) << "(" << sendingPartnerId << ")" << " for wyphon handle: " << pWyphonPartner << " " << wyphonPartnerHandle << " hLMBP=" << localMessageBroadcastPartnerHandle << "\n";
+//		wcout << "Wyphon: PartnerJoinedCallback: " <<  GetBroadcastPartnerName(localMessageBroadcastPartnerHandle, sendingPartnerId) << "(" << sendingPartnerId << ")" << " for wyphon handle: " << pWyphonPartner << " " << wyphonPartnerHandle << " hLMBP=" << localMessageBroadcastPartnerHandle << "\n";
 		
 		
 		//send him a list of everything we are currently sharing
@@ -314,7 +314,7 @@ namespace Wyphon {
 	bool PartnerLeftCallback( HANDLE localMessageBroadcastPartnerHandle, unsigned int sendingPartnerId, HANDLE wyphonPartnerHandle ) {
 		WyphonPartnerDescriptor * pWyphonPartner = (WyphonPartnerDescriptor *) wyphonPartnerHandle;
 
-		wcout << "Wyphon: PartnerLeftCallback: " <<  GetBroadcastPartnerName(localMessageBroadcastPartnerHandle, sendingPartnerId) << "(" << sendingPartnerId << ")" << " for wyphon handle: " << pWyphonPartner << " " << wyphonPartnerHandle << " hLMBP=" << localMessageBroadcastPartnerHandle << "\n";
+//		wcout << "Wyphon: PartnerLeftCallback: " <<  GetBroadcastPartnerName(localMessageBroadcastPartnerHandle, sendingPartnerId) << "(" << sendingPartnerId << ")" << " for wyphon handle: " << pWyphonPartner << " " << wyphonPartnerHandle << " hLMBP=" << localMessageBroadcastPartnerHandle << "\n";
 
 		//forget about all textures shared by this partner
 		bool success = RemoveAllD3DTexturesSharedByPartner(pWyphonPartner, sendingPartnerId);
@@ -339,7 +339,7 @@ namespace Wyphon {
 				return ProcessReceivedUnshareD3DTextureMessage( pWyphonPartner, sendingPartnerId, (BYTE*)msgData, msgLength );
 				break;
 			default:
-				wcout << "Wyphon: Unknown message type." << "\n";
+//				wcout << "Wyphon: Unknown message type." << "\n";
 				return false;
 		}
 	}
@@ -351,14 +351,14 @@ namespace Wyphon {
 	bool ShareD3DTexture(HANDLE wyphonPartnerHandle, HANDLE sharedTextureHandle, unsigned int width, unsigned int height, DWORD format, DWORD usage, LPTSTR description) {
 		WyphonPartnerDescriptor * pWyphonPartner = (WyphonPartnerDescriptor *) wyphonPartnerHandle;
 
-		wcout << "Wyphon: ShareD3DTexture with handle=" << sharedTextureHandle << " " << width << "x" << height << "\n";
+//		wcout << "Wyphon: ShareD3DTexture with handle=" << sharedTextureHandle << " " << width << "x" << height << "\n";
 
 		WyphonD3DTextureInfo * pTextureInfo = CreateWyphonD3DTextureInfo( sharedTextureHandle, width, height, format, usage, _tcslen(description), description, GetBroadcastPartnerId(pWyphonPartner->hLocalMessageBroadcastPartner) );
 		
 		BYTE * data;
 		int dataSize = CreateShareD3DTextureMessage(pWyphonPartner, pTextureInfo, &data);
 
-		wcout << "Wyphon: CreateShareD3DTextureMessage done..." << "\n";
+//		wcout << "Wyphon: CreateShareD3DTextureMessage done..." << "\n";
 		
 		bool success = dataSize > 0;
 
@@ -368,7 +368,7 @@ namespace Wyphon {
 			delete data; 
 		}
 
-		wcout << "Wyphon: Shared texture with handle=" << pTextureInfo->hSharedTexture << " " << pTextureInfo->width << "x" << pTextureInfo->height << "\n";
+//		wcout << "Wyphon: Shared texture with handle=" << pTextureInfo->hSharedTexture << " " << pTextureInfo->width << "x" << pTextureInfo->height << "\n";
 		
 		return success;
 	}
@@ -415,25 +415,25 @@ namespace Wyphon {
 
 		bool success = true;
 
-		wcout << "Wyphon: RemoveAllD3DTexturesSharedByUs " << "\n";
+//		wcout << "Wyphon: RemoveAllD3DTexturesSharedByUs " << "\n";
 		success = success && UnshareAllD3DTexturesSharedByUs(pWyphonPartner);
 //		success = success && RemoveAllD3DTexturesSharedByUs(pWyphonPartner);
 
-		wcout << "Wyphon: RemoveAllD3DTexturesSharedBy ANY Partner " << "\n";
+//		wcout << "Wyphon: RemoveAllD3DTexturesSharedBy ANY Partner " << "\n";
 		map<unsigned int, map<HANDLE, WyphonD3DTextureInfo*>>::iterator itr;
 		for ( itr = pWyphonPartner->sharedByPartnersD3DTexturesMap->begin(); itr != pWyphonPartner->sharedByPartnersD3DTexturesMap->end(); itr = pWyphonPartner->sharedByPartnersD3DTexturesMap->begin() /*because current gets deleted !!!*/ ) {
-			wcout << "Wyphon: RemoveAllD3DTexturesSharedByPartner " << itr->first << "\n";
+//			wcout << "Wyphon: RemoveAllD3DTexturesSharedByPartner " << itr->first << "\n";
 			success = success && RemoveAllD3DTexturesSharedByPartner(pWyphonPartner, itr->first );
 		}
 
 
-		wcout << "Wyphon: Trying to DestroyLocalMessageBroadcastPartner" << "\n";
+//		wcout << "Wyphon: Trying to DestroyLocalMessageBroadcastPartner" << "\n";
 		
 		success = success && DestroyLocalMessageBroadcastPartner( pWyphonPartner->hLocalMessageBroadcastPartner );
 		pWyphonPartner->hLocalMessageBroadcastPartner = NULL;
 		
 
-		wcout << "Wyphon: Trying to delete all memory that has been allocated..." << "\n";
+//		wcout << "Wyphon: Trying to delete all memory that has been allocated..." << "\n";
 
 		delete pWyphonPartner->sharedByUsD3DTexturesMap;
 		delete pWyphonPartner->sharedByPartnersD3DTexturesMap;
@@ -441,7 +441,7 @@ namespace Wyphon {
 		
 		delete pWyphonPartner;
 		
-		wcout << "Wyphon: Done..." << "\n";
+//		wcout << "Wyphon: Done..." << "\n";
 		return success;
 	}
 
@@ -460,7 +460,7 @@ namespace Wyphon {
 
 		pWyphonPartner->applicationName = new wstring( applicationName );
 
-		wcout << "Wyphon: Application Name = " << applicationName << " or in *(pWyphonPartner->applicationName) = " << *(pWyphonPartner->applicationName) << "\n";
+//		wcout << "Wyphon: Application Name = " << applicationName << " or in *(pWyphonPartner->applicationName) = " << *(pWyphonPartner->applicationName) << "\n";
 
 
  		LPTSTR lpLocalMessageBroadcastName = TEXT(WYPHON_LOCALMESSAGEBROADCAST_NAME);
@@ -475,7 +475,7 @@ namespace Wyphon {
 		pWyphonPartner->pD3DtextureSharingStartedCallbackFunc = pD3DTextureSharingStartedCallbackFunc;
 		pWyphonPartner->pD3DtextureSharingStoppedCallbackFunc = pD3DTextureSharingStoppedCallbackFunc;
 
-		wcout << "Wyphon: pWyphonPartner=" << pWyphonPartner << "\n";
+//		wcout << "Wyphon: pWyphonPartner=" << pWyphonPartner << "\n";
 
 //		wcout << "Wyphon: Try to CreateLocalMessageBroadcastPartner with " << lpLocalMessageBroadcastName << " and callbackFuncCustomData=" << pWyphonPartner << "\n";
 		pWyphonPartner->hLocalMessageBroadcastPartner =
@@ -485,14 +485,14 @@ namespace Wyphon {
 													, (LPLocalMessageBroadcastPartnerLeftCALLBACK)PartnerLeftCallback
 													, (LPMessageReceivedCALLBACK)MessageReceivedCallback
 												);
-		wcout << "Wyphon: CreateLocalMessageBroadcastPartner returned " << pWyphonPartner->hLocalMessageBroadcastPartner << "\n";
+//		wcout << "Wyphon: CreateLocalMessageBroadcastPartner returned " << pWyphonPartner->hLocalMessageBroadcastPartner << "\n";
 
-		wcout << "Wyphon: Finally return the handle " << pWyphonPartner << " for partner " << *(pWyphonPartner->applicationName) << "\n";
+//		wcout << "Wyphon: Finally return the handle " << pWyphonPartner << " for partner " << *(pWyphonPartner->applicationName) << "\n";
 		
 		//Sleep(20000L);
 
 		if (pWyphonPartner->pD3DtextureSharingStartedCallbackFunc != pD3DTextureSharingStartedCallbackFunc) {
-			wcout << "Wyphon: PROBLEM pWyphonPartner->pD3DtextureSharingStartedCallbackFunc=" << pWyphonPartner->pD3DtextureSharingStartedCallbackFunc << " != " << pD3DTextureSharingStartedCallbackFunc << "\n";
+//			wcout << "Wyphon: PROBLEM pWyphonPartner->pD3DtextureSharingStartedCallbackFunc=" << pWyphonPartner->pD3DtextureSharingStartedCallbackFunc << " != " << pD3DTextureSharingStartedCallbackFunc << "\n";
 		}
 		
 		return pWyphonPartner;
@@ -514,7 +514,7 @@ namespace Wyphon {
 		map<unsigned int, map<HANDLE, WyphonD3DTextureInfo*>> * tMap = pWyphonPartner->sharedByPartnersD3DTexturesMap;
 		map<unsigned int, map<HANDLE, WyphonD3DTextureInfo*>>::iterator itr;
 		for ( itr = tMap->begin(); itr != tMap->end(); itr++ ) {
-			wcout << "Wyphon: GetD3DTextureInfo " << itr->first << "\n";
+//			wcout << "Wyphon: GetD3DTextureInfo " << itr->first << "\n";
 			
 			if ( (itr->second)[sharedTextureHandle] != NULL ) {
 				wyphonPartnerId = itr->first;

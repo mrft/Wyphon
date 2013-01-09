@@ -431,73 +431,83 @@ namespace ShareDataTest
 		}
 
 		private void TestWyphonDotNet() {
-			Console.Write("What's your application name: ");
-			string name = Console.ReadLine();
-			Console.WriteLine("Welcome " + name + ". You share a texture's info by typing s, and unshare by typing u afterwards<enter>");
-
-			WyphonPartner wp = new WyphonPartner(name);
-			wp.WyphonPartnerJoinedEvent += WyphonDotNetPartnerJoinedCallback;
-			wp.WyphonPartnerLeftEvent += WyphonDotNetPartnerLeftCallback;
-			wp.WyphonPartnerD3DTextureSharedEvent += 
-				delegate(uint sendingPartnerId, uint sharedTextureHandle, uint width, uint height, uint format, uint usage, string description) {
-					Console.WriteLine("DotNet new shared texture by partner " + sendingPartnerId + ". Its handle = " + sharedTextureHandle +  " and its other data = " + width + "x" + height + ":" + usage + " : " + description);
-				};
-			wp.WyphonPartnerD3DTextureUnsharedEvent += 
-				delegate(uint sendingPartnerId, uint sharedTextureHandle, uint width, uint height, uint format, uint usage, string description) {
-					Console.WriteLine("DotNet STOPPED SHARING texture by partner " + sendingPartnerId + ". Its handle = " + sharedTextureHandle +  " and its other data = " + width + "x" + height + ":" + usage + " : " + description);
-				};
-			
-			if ( wp != null ) {
-				try {
-					Console.WriteLine("We have ID = " + wp.PartnerId);
-					
-					char input = Console.ReadKey(true).KeyChar;//.ReadLine();
-					while ( input != 'q' ) {
-						if ( input == 's' ) {
-							Console.Write("Enter description for " + name + "'s shared texture: ");
-							string textureName = Console.ReadLine();
-							uint textureHandle = 0;
-							uint textureWidth = 0;
-							uint textureHeight = 0;
-							do {
-								Console.Write("Enter handle shared texture: ");
-							} while ( ! UInt32.TryParse( Console.ReadLine(), out textureHandle ) );
-							do {
-								Console.Write("Enter width for shared texture: ");
-							} while ( ! UInt32.TryParse( Console.ReadLine(), out textureWidth ) );
-							do {
-								Console.Write("Enter height for shared texture: ");
-							} while ( ! UInt32.TryParse( Console.ReadLine(), out textureHeight ) );
-							
-							wp.ShareD3DTexture(textureHandle, textureWidth, textureHeight, 21, 999, textureName);
-							//ShareD3DTexture( hWyphonPartner, textureHandle, textureWidth, textureHeight, 999, textureName );
-						}
-						else if ( input == 'u' ) {
-							uint textureHandle = 0;
-							do {
-								Console.Write("Enter handle for texture you want to UN-share: ");
-							} while ( ! UInt32.TryParse( Console.ReadLine(), out textureHandle ) );
-
-							wp.UnshareD3DTexture(textureHandle);
-							//UnshareD3DTexture(hWyphonPartner, textureHandle);
-						}
+			bool repeat = false;
+			do {
+				Console.Write("What's your application name: ");
+				string name = Console.ReadLine();
+				Console.WriteLine("Welcome " + name + ". You share a texture's info by typing s, and unshare by typing u afterwards<enter>");
+	
+				WyphonPartner wp = new WyphonPartner(name);
+				wp.WyphonPartnerJoinedEvent += WyphonDotNetPartnerJoinedCallback;
+				wp.WyphonPartnerLeftEvent += WyphonDotNetPartnerLeftCallback;
+				wp.WyphonPartnerD3DTextureSharedEvent += 
+					delegate(uint sendingPartnerId, uint sharedTextureHandle, uint width, uint height, uint format, uint usage, string description) {
+						Console.WriteLine("DotNet new shared texture by partner " + sendingPartnerId + ". Its handle = " + sharedTextureHandle +  " and its other data = " + width + "x" + height + ":" + usage + " : " + description);
+					};
+				wp.WyphonPartnerD3DTextureUnsharedEvent += 
+					delegate(uint sendingPartnerId, uint sharedTextureHandle, uint width, uint height, uint format, uint usage, string description) {
+						Console.WriteLine("DotNet STOPPED SHARING texture by partner " + sendingPartnerId + ". Its handle = " + sharedTextureHandle +  " and its other data = " + width + "x" + height + ":" + usage + " : " + description);
+					};
+				
+				if ( wp != null ) {
+					try {
+						Console.WriteLine("We have ID = " + wp.PartnerId);
 						
-						input = Console.ReadKey(true).KeyChar;
+						char input = Console.ReadKey(true).KeyChar;//.ReadLine();
+						while ( input != 'q' ) {
+							if ( input == 's' ) {
+								Console.Write("Enter description for " + name + "'s shared texture: ");
+								string textureName = Console.ReadLine();
+								uint textureHandle = 0;
+								uint textureWidth = 0;
+								uint textureHeight = 0;
+								do {
+									Console.Write("Enter handle shared texture: ");
+								} while ( ! UInt32.TryParse( Console.ReadLine(), out textureHandle ) );
+								do {
+									Console.Write("Enter width for shared texture: ");
+								} while ( ! UInt32.TryParse( Console.ReadLine(), out textureWidth ) );
+								do {
+									Console.Write("Enter height for shared texture: ");
+								} while ( ! UInt32.TryParse( Console.ReadLine(), out textureHeight ) );
+								
+								wp.ShareD3DTexture(textureHandle, textureWidth, textureHeight, 21, 999, textureName);
+								//ShareD3DTexture( hWyphonPartner, textureHandle, textureWidth, textureHeight, 999, textureName );
+							}
+							else if ( input == 'u' ) {
+								uint textureHandle = 0;
+								do {
+									Console.Write("Enter handle for texture you want to UN-share: ");
+								} while ( ! UInt32.TryParse( Console.ReadLine(), out textureHandle ) );
+	
+								wp.UnshareD3DTexture(textureHandle);
+								//UnshareD3DTexture(hWyphonPartner, textureHandle);
+							}
+							
+							input = Console.ReadKey(true).KeyChar;
+						}
+					}
+					finally {
+						
+						wp.Dispose();
 					}
 				}
-				finally {
-					
-					wp.Dispose();
+				else {
+					Console.WriteLine( "CreateWyphonPartner FAILED!!!" );				
 				}
-			}
-			else {
-				Console.WriteLine( "CreateWyphonPartner FAILED!!!" );				
-			}
-
-			Console.WriteLine( "\nPress 'q' again to really quit..." );
-			char input2 = Console.ReadKey(true).KeyChar;//.ReadLine();
-			while ( input2 != 'q' ) {
-			}
+	
+				Console.WriteLine( "\nPress 'q' again to really quit or 'r' to restart..." );
+				repeat = false;
+				char input2 = Console.ReadKey(true).KeyChar;//.ReadLine();
+				while ( input2 != 'q' && input2 != 'r' ) {
+					input2 = Console.ReadKey(true).KeyChar;
+				}
+				if (input2 == 'r') {
+					repeat = true;
+					Console.WriteLine();
+				}
+				
+			} while (repeat);
 			//Thread.Sleep(8000);
 						
 		}

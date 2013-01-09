@@ -249,7 +249,7 @@ namespace SharedMemory {
 			//std::wcout << "CreateFileMapping '" << nameForFileMapping << "' returned " << pSharedMemory->hSharedMemory <<"\n";
 			created = true;
 			if ( pSharedMemory->hSharedMemory == NULL ) {
-				std::wcout << "FAILED to create the shared buffer: " << GetLastError() <<"\n";
+//				std::wcout << "FAILED to create the shared buffer: " << GetLastError() <<"\n";
 			}
 		}
 		

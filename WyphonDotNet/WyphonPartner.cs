@@ -73,6 +73,11 @@ namespace Wyphon
 		#region fields
 		uint wyphonPartnerHandle = 0;
 		
+		//by storing them as class variables, we make sure the garbage collector doesn't remove these too early
+		private WyphonPartnerJoinedCallbackDelegate wyphonPartnerJoinedCallbackDelegate;
+		private WyphonPartnerLeftCallbackDelegate wyphonPartnerLeftCallbackDelegate;
+		private D3DTextureSharingStartedCallbackDelegate d3dTextureSharingStartedCallbackDelegate;
+		private D3DTextureSharingStoppedCallbackDelegate d3dTextureSharingStoppedCallbackDelegate;
 		#endregion fields
 		
 		// What the event handlers should look like
@@ -97,12 +102,17 @@ namespace Wyphon
 		/// </summary>
 		/// <param name="name">the name of our application that is communicated to the other partners</param>
 		public WyphonPartner(string name) {
-			WyphonPartnerJoinedCallbackDelegate jcd = WyphonPartnerJoinedCallback;
-			WyphonPartnerLeftCallbackDelegate lcd = WyphonPartnerLeftCallback;
-			D3DTextureSharingStartedCallbackDelegate d3dtsbcd = D3DTextureSharingStartedCallback;
-			D3DTextureSharingStoppedCallbackDelegate d3dtsecd = D3DTextureSharingStoppedCallback;
+			wyphonPartnerJoinedCallbackDelegate = WyphonPartnerJoinedCallback;
+			wyphonPartnerLeftCallbackDelegate = WyphonPartnerLeftCallback;
+			d3dTextureSharingStartedCallbackDelegate = D3DTextureSharingStartedCallback;
+			d3dTextureSharingStoppedCallbackDelegate = D3DTextureSharingStoppedCallback;
 			
-			wyphonPartnerHandle = CreateWyphonPartner(name, IntPtr.Zero, Marshal.GetFunctionPointerForDelegate(jcd), Marshal.GetFunctionPointerForDelegate(lcd), Marshal.GetFunctionPointerForDelegate(d3dtsbcd), Marshal.GetFunctionPointerForDelegate(d3dtsecd));
+			wyphonPartnerHandle = CreateWyphonPartner(name, IntPtr.Zero, 
+			                                          Marshal.GetFunctionPointerForDelegate(wyphonPartnerJoinedCallbackDelegate), 
+			                                          Marshal.GetFunctionPointerForDelegate(wyphonPartnerLeftCallbackDelegate), 
+			                                          Marshal.GetFunctionPointerForDelegate(d3dTextureSharingStartedCallbackDelegate), 
+			                                          Marshal.GetFunctionPointerForDelegate(d3dTextureSharingStoppedCallbackDelegate)
+			                                         );
 			
 		}
 		
