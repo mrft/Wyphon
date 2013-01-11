@@ -1,0 +1,157 @@
+﻿/*
+ * Created by SharpDevelop.
+ * User: frederik
+ * Date: 11/01/2013
+ * Time: 9:40
+ * 
+ * To change this template use Tools | Options | Coding | Edit Standard Headers.
+ */
+using System;
+using System.Runtime.InteropServices;
+using System.Threading;
+
+
+namespace ShareDataTest.TestClasses
+{
+	/// <summary>
+	/// Description of TestSharedMemory.
+	/// </summary>
+	public class TestSharedMemory
+	{
+		#region SharedMemory.dll imports
+		[DllImport("SharedMemory", CallingConvention = CallingConvention.Cdecl)]
+		public static extern uint CreateSharedMemory([MarshalAs(UnmanagedType.LPTStr)]string name, uint startSize, uint maxSize);
+
+		[DllImport("SharedMemory", CallingConvention = CallingConvention.Cdecl)]
+		public static extern bool LockSharedMemory(uint hSharedMemory, uint timeoutInMilliseconds);
+
+//		[DllImport("SharedMemory", CallingConvention = CallingConvention.Cdecl)]
+//		public static extern IntPtr ReadSharedMemory(uint hSharedMemory);
+
+		[DllImport("SharedMemory", CallingConvention = CallingConvention.Cdecl)]
+		public static extern int ReadSharedMemory( uint sharedDataHandle, out IntPtr pData);
+
+		
+		[DllImport("SharedMemory", CallingConvention = CallingConvention.Cdecl)]
+		public static extern int WriteSharedMemory( uint hSharedMemory, byte[] data, uint length, uint offset );
+
+		[DllImport("SharedMemory", CallingConvention = CallingConvention.Cdecl)]
+		public static extern string ReadStringFromSharedMemory(uint hSharedMemory);
+
+		[DllImport("SharedMemory", CallingConvention = CallingConvention.Cdecl)]
+		public static extern int WriteStringToSharedMemory(uint hSharedMemory, [MarshalAs(UnmanagedType.LPTStr)]string data);
+
+		[DllImport("SharedMemory", CallingConvention = CallingConvention.Cdecl)]
+		public static extern bool UnlockSharedMemory(uint hSharedMemory);
+
+		[DllImport("SharedMemory", CallingConvention = CallingConvention.Cdecl)]
+		public static extern bool DestroySharedMemory(uint hSharedMemory);
+		#endregion SharedMemory.dll imports
+		
+		#region SharedData.dll imports
+//
+//		[DllImport("SharedData", CallingConvention = CallingConvention.Cdecl)]
+//		public static extern uint CreateSharedDataPartner([MarshalAs(UnmanagedType.LPTStr)]string sharedDataName, [MarshalAs(UnmanagedType.LPTStr)]string applicationName);
+//
+//		[DllImport("SharedData", CallingConvention = CallingConvention.Cdecl)]
+//		public static extern bool DestroySharedDataPartner(uint hWyphonPartner);
+//		
+//		[DllImport("SharedData", CallingConvention = CallingConvention.Cdecl)]
+//		public static extern bool ShareData(uint sharedDataPartnerHandle, uint sharedObjectHandle, [MarshalAs(UnmanagedType.LPTStr)]string sharedData, int nrOfBytes);
+//
+//		[DllImport("SharedData", CallingConvention = CallingConvention.Cdecl)]
+//		public static extern bool UnshareData(uint wyphonPartnerHandle, uint sharedObjectHandle);
+//
+		#endregion SharedData.dll imports
+
+		
+		public TestSharedMemory()
+		{
+		}
+		
+		
+#region TestSharedMemory functions
+		/// <summary>
+		/// Simple method that copies the given number of bytes to managed memory and returns a string
+		/// </summary>
+		/// <param name="intPtr0"></param>
+		/// <param name="num1"></param>
+		static string MyIntPtrToString(IntPtr p, int nrOfBytes) {
+			byte[] bytes = new byte[nrOfBytes + 1];
+			bytes[nrOfBytes] = 0;
+			if (nrOfBytes > 0) {
+				Marshal.Copy(p, bytes, 0, nrOfBytes);
+			}
+			return new System.Text.UTF8Encoding().GetString(bytes);
+		}
+
+
+		static void DoTestSharedMemory() {
+			uint hSharedMemory = CreateSharedMemory("MyFileMappingObject", 1, 64);
+			if (hSharedMemory != 0) {
+				try {
+		
+					Console.WriteLine("Press L or U to try to lock or unlock the semaphore (or 'q' to quit)...");
+					
+					bool locked = false;
+					
+					char input = Console.ReadKey(true).KeyChar;//.ReadLine();
+					while ( input != 'q' ) {
+//						Console.WriteLine( locked ? "TRYING TO UNLOCK" : " TRYING TO LOCK" );
+
+						IntPtr pData;
+						int nrOfBytesRead;
+						
+						if ( input == 'u' ) {
+							nrOfBytesRead = ReadSharedMemory(hSharedMemory, out pData);
+							Console.WriteLine("\tShared buffer now contains [" + MyIntPtrToString(pData, nrOfBytesRead) + "]." );
+							Console.Write( (locked ? "*** " : "") + "TRYING TO UNLOCK... " );
+							if ( UnlockSharedMemory(hSharedMemory) ) {
+								Console.WriteLine( "SUCCESSFULLY UNLOCKED" );						
+							}
+							else {
+								Console.WriteLine( "FAILED TO UNLOCK" );
+							}
+							locked = false;
+						}
+						else if ( input == 'l' ) {
+							Console.Write( (locked ? "*** " : "") + "TRYING TO LOCK... " );
+							if ( LockSharedMemory(hSharedMemory, 5000) ) {
+								locked = true;
+								Console.WriteLine( "SUCCESSFULLY LOCKED" );
+
+								nrOfBytesRead = ReadSharedMemory(hSharedMemory, out pData);																
+								Console.Write("\tShared buffer now contains [" + MyIntPtrToString(pData, nrOfBytesRead) + "].\n\tReplace by: " );
+//								Console.Write("    Replace by: " );
+								string inputLine = Console.ReadLine();
+								//bool written = WriteStringToSharedMemory( hSharedMemory, input);
+								bool written = WriteSharedMemory( hSharedMemory, new System.Text.UTF8Encoding().GetBytes(inputLine), (uint)inputLine.Length, 0) > 0;
+								//WriteSharedMemory( hSharedMemory, new byte[32], 32, (uint)inputLine.Length);
+								Console.WriteLine( written ? "OK" : "ERROR" );
+							}
+							else {
+								Console.WriteLine( "FAILED TO LOCK" );
+							}
+						}
+						//read the next line
+						input = Console.ReadKey(true).KeyChar;
+					}
+				}
+				finally {
+					if ( DestroySharedMemory(hSharedMemory) ) {
+						Console.WriteLine( "SUCCESSFULLY destroyed shared data" );
+					}
+					else {
+						Console.WriteLine( "FAILED to destroy shared data" );
+					}
+				}
+			}
+			else {
+				Console.WriteLine( "CreateSharedMemory FAILED!!!" );				
+			}
+			Thread.Sleep(8000);
+		}
+#endregion TestSharedMemory functions
+
+	}
+}

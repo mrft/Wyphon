@@ -179,6 +179,10 @@ namespace Wyphon
 			get { return GetPartnerId(wyphonPartnerHandle); }
 		}
 		
+		public string GetPartnerName(uint partnerId) {
+			return Marshal.PtrToStringAuto( GetWyphonPartnerName(wyphonPartnerHandle, partnerId) );
+		}
+
 		public void Dispose() {			
 			if (wyphonPartnerHandle != 0) {
 				DestroyWyphonPartner(wyphonPartnerHandle);

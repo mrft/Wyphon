@@ -63,6 +63,9 @@
     <ClInclude Include="SharedMemory.h" />
     <ClInclude Include="Wyphon.h" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="license.txt" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Targets" />

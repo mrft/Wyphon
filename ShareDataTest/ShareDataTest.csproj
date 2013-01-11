@@ -43,6 +43,9 @@
     <Reference Include="LocalMessageBroadcast">
       <HintPath>..\Debug\LocalMessageBroadcast.dll</HintPath>
     </Reference>
+    <Reference Include="LocalMessageBroadcastDotNet">
+      <HintPath>..\LocalMessageBroadcast\bin\Debug\LocalMessageBroadcastDotNet.dll</HintPath>
+    </Reference>
     <Reference Include="SharedData">
       <HintPath>..\Debug\SharedData.dll</HintPath>
     </Reference>
@@ -71,6 +74,14 @@
   <ItemGroup>
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="TestClasses\TestLocalMessageBroadcast.cs" />
+    <Compile Include="TestClasses\TestLocalMessageBroadcastDotNet.cs" />
+    <Compile Include="TestClasses\TestSharedMemory.cs" />
+    <Compile Include="TestClasses\TestWyphon.cs" />
+    <Compile Include="TestClasses\TestWyphonDotNet.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="TestClasses" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.Targets" />
 </Project>
