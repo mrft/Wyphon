@@ -29,7 +29,8 @@ namespace ShareDataTest
 								"  1. WyphonDotNet\n" +
 								"  2. LocalMessageBroadcastDotnet\n" +
 								"  3. Wyphon\n" +
-								"  4. LocalMessageBroadcast\n"
+								"  4. LocalMessageBroadcast\n" +
+								"  5. SharedMemory\n"
 				             );
 				
 				bool inexistingChoice;
@@ -60,6 +61,11 @@ namespace ShareDataTest
 							Console.WriteLine( "---- BEGIN LocalMessageBroadcast Test" );
 							new TestLocalMessageBroadcast().DoTestLocalMessageBroadcast();
 							Console.WriteLine( "---- END LocalMessageBroadcast Test" );
+							break;
+						case '5':
+							Console.WriteLine( "---- BEGIN SharedMemory Test" );
+							TestSharedMemory.DoTestSharedMemory();
+							Console.WriteLine( "---- END SharedMemory Test" );
 							break;
 						default:
 							inexistingChoice = true;

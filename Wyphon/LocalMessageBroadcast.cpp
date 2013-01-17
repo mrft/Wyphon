@@ -116,6 +116,7 @@ namespace LocalMessageBroadcast {
 	// we will add message_types and structs to describe these resources
 	// We'll start with textures only at this time
 
+	#define LOCAL_MSG_BROADCAST_STOPLISTENING				0
 	#define LOCAL_MSG_BROADCAST_HELLO 						1
 	#define LOCAL_MSG_BROADCAST_WELCOME						2
 	#define LOCAL_MSG_BROADCAST_MESSAGE		 				10
@@ -167,11 +168,11 @@ namespace LocalMessageBroadcast {
 
 	/// since we will only send unsigned integers around, the mailslot name 
 	/// will be constructed from a string and the decimal representation of this number...
-	wstring CreateMailslotName(unsigned int identifier) {
+	wstring CreateMailslotName(wstring baseName, unsigned int identifier) {
 		//wstring retVal;
 		
 		wstringstream ss;
-    	ss << "\\\\.\\mailslot\\Wyphon\\" << identifier;
+    	ss << "\\\\.\\mailslot\\" << baseName << "\\" << identifier;
 		
 		//retVal = ss.str();
 		
@@ -258,7 +259,7 @@ namespace LocalMessageBroadcast {
 	///Create 1 single writermailslot, and put it into the list of known partners
 	bool CreateWriterMailslot(LocalMessageBroadcastPartnerDescriptor * pLocalMessageBroadcastPartner, unsigned int id) {
 
-		wstring name = CreateMailslotName(id);
+		wstring name = CreateMailslotName(*(pLocalMessageBroadcastPartner->sharedMemoryName), id);
 
 		//wcout << "CreateWriterMailslot named '" << name << "'\n";
 
@@ -289,7 +290,7 @@ namespace LocalMessageBroadcast {
 
 
 	/// Creates file handles for writing to all of the partner mailslots
-	BOOL CreateWriterMailslots(LocalMessageBroadcastPartnerDescriptor * pLocalMessageBroadcastPartner, unsigned int * ids, int nrOfIds) {
+	bool CreateWriterMailslots(LocalMessageBroadcastPartnerDescriptor * pLocalMessageBroadcastPartner, unsigned int * ids, int nrOfIds) {
 	
 		bool success = true;
 	
@@ -304,7 +305,7 @@ namespace LocalMessageBroadcast {
 			else {
 				//wcout << " != 0 so try to open the mailslot ";
 			
-				success = success && CreateWriterMailslot(pLocalMessageBroadcastPartner, id);				
+				success = success && CreateWriterMailslot(pLocalMessageBroadcastPartner, id);
 			}		
 		}
 		
@@ -312,17 +313,17 @@ namespace LocalMessageBroadcast {
 	}
 
 
-	BOOL DestroyReaderMailslot(LocalMessageBroadcastPartnerDescriptor * pLocalMessageBroadcastPartner) {
+	bool DestroyReaderMailslot(LocalMessageBroadcastPartnerDescriptor * pLocalMessageBroadcastPartner) {
 
 		CloseHandle( pLocalMessageBroadcastPartner->hReaderMailslot );
 		
-		return TRUE;
+		return true;
 	}
 
 
 	/// Creates a mailslot handle so we can listen for messages
-	BOOL CreateReaderMailslot(LocalMessageBroadcastPartnerDescriptor * pLocalMessageBroadcastPartner) {
-		wstring name = CreateMailslotName(pLocalMessageBroadcastPartner->myId);
+	bool CreateReaderMailslot(LocalMessageBroadcastPartnerDescriptor * pLocalMessageBroadcastPartner) {
+		wstring name = CreateMailslotName( *(pLocalMessageBroadcastPartner->sharedMemoryName), pLocalMessageBroadcastPartner->myId);
 		
 		pLocalMessageBroadcastPartner->hReaderMailslot = CreateMailslot( 	name.c_str(), 
 													        0,                             // no maximum message size 
@@ -331,18 +332,19 @@ namespace LocalMessageBroadcast {
 		
 		if ( pLocalMessageBroadcastPartner->hReaderMailslot == INVALID_HANDLE_VALUE ) { 
 //			wcout << "CreateMailslot (" << name << ") failed with " << GetLastError() << "\n";
-			return FALSE; 
+			return false; 
 		} 
 	    else {
-	    	//wcout << "Mailslot named " << name << " created successfully.\n";
+			//wcout << "Mailslot named " << name << " created successfully.\n";
 	    }
-	    return TRUE; 
+	    
+	    return true;
 	}
 
 
-	BOOL WriteToAllMailslots(LocalMessageBroadcastPartnerDescriptor * pLocalMessageBroadcastPartner, BYTE * data, int len) {
+	bool WriteToAllMailslots(LocalMessageBroadcastPartnerDescriptor * pLocalMessageBroadcastPartner, BYTE * data, int len) {
 		
-		BOOL success = true;
+		bool success = true;
 
 //	    wcout << "Trying pLocalMessageBroadcastPartner->writerMailslotHandlesMap->size()" << "\n";
 //	    wcout << pLocalMessageBroadcastPartner->writerMailslotHandlesMap->size() << "\n";
@@ -353,20 +355,23 @@ namespace LocalMessageBroadcast {
 //		    wcout << "Found " << pLocalMessageBroadcastPartner->writerMailslotHandlesMap->size() << " partners, so get an iterator and try to send the message to all of them." << "\n";
 			
 			for ( itr = pLocalMessageBroadcastPartner->writerMailslotHandlesMap->begin(); itr != pLocalMessageBroadcastPartner->writerMailslotHandlesMap->end(); ++itr ) {
-				HANDLE hFile = itr->second;
-				BOOL fResult;
-				DWORD cbWritten; 
-	
-//		    	wcout << "Try to write to mailsot " << hFile << " aka " << itr->second << "\n";
-				
-				fResult = WriteFile(hFile, data, len, &cbWritten, (LPOVERLAPPED) NULL);
-	
-				if (!fResult) {
-					success = false;
-					printf("WriteFile failed with %d.\n", GetLastError()); 
-				}
-				else {
-					//printf("Slot written to successfully.\n"); 
+				//don't write to your own mailslot
+				if (itr->first != pLocalMessageBroadcastPartner->myId) {
+					HANDLE hFile = itr->second;
+					BOOL fResult;
+					DWORD cbWritten; 
+		
+	//		    	wcout << "Try to write to mailsot " << hFile << " aka " << itr->second << "\n";
+					
+					fResult = WriteFile(hFile, data, len, &cbWritten, (LPOVERLAPPED) NULL);
+		
+					if (!fResult) {
+						success = false;
+						printf("WriteFile failed with %d.\n", GetLastError()); 
+					}
+					else {
+						//printf("Slot written to successfully.\n"); 
+					}
 				}
 			}
 		}
@@ -402,6 +407,17 @@ namespace LocalMessageBroadcast {
 //			wcout << "WHAT'S THIS??? dataSize = " << dataSize << " but addr - data = " << addr - (*data) << "\n";
 			throw L"[CreateHelloMessage] dataSize and real length of generated message don't match"; //10;
 		}
+		
+		return dataSize;
+	}
+
+	/// data should be deleted afterwards by the caller !!!
+	/// BYTE msgType ; HANDLE partnerId ; size_t appnamelength ; wchar_t * myName
+	int CreateStopListeningMessage(LocalMessageBroadcastPartnerDescriptor * pLocalMessageBroadcastPartner, BYTE ** data ) {
+
+		int dataSize = 1;
+		(*data) = new BYTE[dataSize];
+		(*data)[0] = LOCAL_MSG_BROADCAST_STOPLISTENING;
 		
 		return dataSize;
 	}
@@ -685,6 +701,13 @@ namespace LocalMessageBroadcast {
 							//wcout << "ListenerThread received a [LOCAL_MSG_BROADCAST_SHARE] message." << "\n";
 							ProcessReceivedMessage( pLocalMessageBroadcastPartner, buffer, nrOfBytesRead);
 						}
+						else if ( buffer[0] == LOCAL_MSG_BROADCAST_STOPLISTENING ) {
+							//stop listening for new messages: this message should only be sent by DestroyPartner !!!
+							pLocalMessageBroadcastPartner->listenerThreadRunning = false;
+						}
+						else {
+							//unknown message type, read next
+						}
 					}
 					
 					//wcout << "CHECK if there are more messages." << "\n";
@@ -713,13 +736,32 @@ namespace LocalMessageBroadcast {
 		LocalMessageBroadcastPartnerDescriptor * pLocalMessageBroadcastPartner = (LocalMessageBroadcastPartnerDescriptor *) localMessageBroadcastPartnerHandle;
 
 //		wcout << "Trying to DestroyLocalMessageBroadcastPartner " << pLocalMessageBroadcastPartner << "\n";
+		
+		//Send a STOP message to our own mailslot, so it stops listening for new messages
+		/////////////////////////////////////////////////////////////////////////////////
+		BYTE * data;
+		int dataSize = CreateStopListeningMessage(pLocalMessageBroadcastPartner, &data);
 
-		//Stop listening for new messages
-		pLocalMessageBroadcastPartner->listenerThreadRunning = false;
-		//Wait until listenerThread is done
-		Sleep(READERMAILSLOT_TIMEOUT + 200);
+		HANDLE hFile = (*pLocalMessageBroadcastPartner->writerMailslotHandlesMap)[pLocalMessageBroadcastPartner->myId];
+		BOOL fResult;
+		DWORD cbWritten;
+		fResult = WriteFile(hFile, data, dataSize, &cbWritten, (LPOVERLAPPED) NULL);
 
+		if (fResult) {
+			//STOP essage sent, so Wait until listenerThread is done
+			while ( pLocalMessageBroadcastPartner->listenerThreadRunning ) {
+				Sleep(1);
+			}
+		}
+		else {
+			//sending STOP message failed, so set 'running' ta false here, and wait long enough so the thread will certainly have stopped reading
+			printf("WriteFile failed with %d.\n", GetLastError());
+			pLocalMessageBroadcastPartner->listenerThreadRunning = false;
+			Sleep(READERMAILSLOT_TIMEOUT + 200);
+		}
+		
 		//Remove yourself from sharedMemory
+		///////////////////////////////////
 		bool success = false;
 
 //		wcout << "Trying to LockSharedMemory" << "\n";
@@ -766,8 +808,7 @@ namespace LocalMessageBroadcast {
 		
 		//Write a 'goodbye' message to all writermailslots
 //		wcout << "Trying to create goodbye message" << "\n";
-		BYTE * data;
-		int dataSize = CreateGoodbyeMessage(pLocalMessageBroadcastPartner, &data);
+		dataSize = CreateGoodbyeMessage(pLocalMessageBroadcastPartner, &data);
 		
 //		wcout << "Trying to write goodbye message to all parter mailslots" << "\n";
 //	    wcout << "Trying pLocalMessageBroadcastPartner = " << pLocalMessageBroadcastPartner << "\n";
@@ -819,10 +860,15 @@ namespace LocalMessageBroadcast {
 
 		pLocalMessageBroadcastPartner->sharedMemoryName = new wstring( lpSharedMemoryName );
 
-//		wcout << "Try to CreateLocalMessageBroadcast with " << pLocalMessageBroadcastPartner->sharedMemoryName << "\n";
+		//wcout << "Try to CreateLocalMessageBroadcast with " << pLocalMessageBroadcastPartner->sharedMemoryName << "\n";
 
 		pLocalMessageBroadcastPartner->hSharedMemory = CreateSharedMemory( lpSharedMemoryName, LOCAL_MSG_BROADCAST_INITIAL_NUMBER_OF_PARTNERS * sizeof(unsigned int), LOCAL_MSG_BROADCAST_MAX_NUMBER_OF_PARTNERS * sizeof(unsigned int) );
 		//THIS was actually overwriting LOCAL variables when called from Wyphon.cpp to 3 and 7:   pLocalMessageBroadcastPartner->hSharedMemory = CreateSharedMemory( lpSharedMemoryName, 3, 7 );
+		if ( pLocalMessageBroadcastPartner->hSharedMemory == NULL ) {
+			throw "[LocalMessageBroadcast] CreateSharedMemory failed.";
+			wcout << "hSharedMemory = NULL: creating new shared memory failed... " << pLocalMessageBroadcastPartner->hSharedMemory << "\n";
+		}
+		
 		
 //		wcout << "hSharedMemory = " << pLocalMessageBroadcastPartner->hSharedMemory << "\n";
 
@@ -851,7 +897,7 @@ namespace LocalMessageBroadcast {
 //		wcout << "Try to open mailslots for every handle that is already in shared data..." << "\n";
 //		wcout << "LockSharedMemory" << "\n";
 		bool allMailslotsReady = false;
-		if ( LockSharedMemory( pLocalMessageBroadcastPartner->hSharedMemory, 1000 ) ) {
+		if ( pLocalMessageBroadcastPartner->hSharedMemory != NULL && LockSharedMemory( pLocalMessageBroadcastPartner->hSharedMemory, 1000 ) ) {
 			
 			BYTE * idBytes = NULL;
 			int nrOfIds = ReadSharedMemory( pLocalMessageBroadcastPartner->hSharedMemory, idBytes ) / sizeof(unsigned int);
@@ -887,26 +933,30 @@ namespace LocalMessageBroadcast {
 					if ( CreateReaderMailslot(pLocalMessageBroadcastPartner) ) {
 //						wcout << "Now try to write your own ID to shared data " << pLocalMessageBroadcastPartner->myId << "\n";
 						
-						//Add yourself to the list (at the first empty spot) !!!
-						WriteSharedMemory( 	pLocalMessageBroadcastPartner->hSharedMemory, 
-											(BYTE*) &newReaderMailslotIdentifier,		//data
-											sizeof(unsigned int),						//length
-											emptySpotPosition * sizeof(unsigned int)	//offset
-										);
+						//Also create a WRITER for our own mailslot !!!
+					    if ( CreateWriterMailslot(pLocalMessageBroadcastPartner, pLocalMessageBroadcastPartner->myId) ) {
 
-						//DEBUG
-/*						delete idBytes;
-						nrOfIds = ReadLocalMessageBroadcast( pLocalMessageBroadcastPartner->hSharedMemory, idBytes ) / sizeof(unsigned int);
-						ids = (unsigned int *)idBytes;
-						emptySpotPosition = -1;
-						newReaderMailslotIdentifier = 0;
-						if ( FindMailslotIdAndEmptySharedMemorySpot(ids, nrOfIds, emptySpotPosition, newReaderMailslotIdentifier) ) {
-							wcout << "TEST TEST TEST: Found an empty spot in shared memory at position " << emptySpotPosition << " and the first unused ID = " << newReaderMailslotIdentifier << "\n";
+							//Add yourself to the list (at the first empty spot) !!!
+							WriteSharedMemory( 	pLocalMessageBroadcastPartner->hSharedMemory, 
+												(BYTE*) &newReaderMailslotIdentifier,		//data
+												sizeof(unsigned int),						//length
+												emptySpotPosition * sizeof(unsigned int)	//offset
+											);
+	
+							//DEBUG
+	/*						delete idBytes;
+							nrOfIds = ReadLocalMessageBroadcast( pLocalMessageBroadcastPartner->hSharedMemory, idBytes ) / sizeof(unsigned int);
+							ids = (unsigned int *)idBytes;
+							emptySpotPosition = -1;
+							newReaderMailslotIdentifier = 0;
+							if ( FindMailslotIdAndEmptySharedMemorySpot(ids, nrOfIds, emptySpotPosition, newReaderMailslotIdentifier) ) {
+								wcout << "TEST TEST TEST: Found an empty spot in shared memory at position " << emptySpotPosition << " and the first unused ID = " << newReaderMailslotIdentifier << "\n";
+							}
+	*/
+	
+	
+							allMailslotsReady = true;
 						}
-*/
-
-
-						allMailslotsReady = true;
 					}
 				}
 			}

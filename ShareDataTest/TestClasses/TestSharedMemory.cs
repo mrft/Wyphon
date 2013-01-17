@@ -18,35 +18,35 @@ namespace ShareDataTest.TestClasses
 	/// </summary>
 	public class TestSharedMemory
 	{
-		#region SharedMemory.dll imports
-		[DllImport("SharedMemory", CallingConvention = CallingConvention.Cdecl)]
+		#region SharedMemory.dll or Wyphon.dll imports
+		[DllImport("Wyphon", CallingConvention = CallingConvention.Cdecl)]
 		public static extern uint CreateSharedMemory([MarshalAs(UnmanagedType.LPTStr)]string name, uint startSize, uint maxSize);
 
-		[DllImport("SharedMemory", CallingConvention = CallingConvention.Cdecl)]
+		[DllImport("Wyphon", CallingConvention = CallingConvention.Cdecl)]
 		public static extern bool LockSharedMemory(uint hSharedMemory, uint timeoutInMilliseconds);
 
 //		[DllImport("SharedMemory", CallingConvention = CallingConvention.Cdecl)]
 //		public static extern IntPtr ReadSharedMemory(uint hSharedMemory);
 
-		[DllImport("SharedMemory", CallingConvention = CallingConvention.Cdecl)]
+		[DllImport("Wyphon", CallingConvention = CallingConvention.Cdecl)]
 		public static extern int ReadSharedMemory( uint sharedDataHandle, out IntPtr pData);
 
 		
-		[DllImport("SharedMemory", CallingConvention = CallingConvention.Cdecl)]
+		[DllImport("Wyphon", CallingConvention = CallingConvention.Cdecl)]
 		public static extern int WriteSharedMemory( uint hSharedMemory, byte[] data, uint length, uint offset );
 
-		[DllImport("SharedMemory", CallingConvention = CallingConvention.Cdecl)]
+		[DllImport("Wyphon", CallingConvention = CallingConvention.Cdecl)]
 		public static extern string ReadStringFromSharedMemory(uint hSharedMemory);
 
-		[DllImport("SharedMemory", CallingConvention = CallingConvention.Cdecl)]
+		[DllImport("Wyphon", CallingConvention = CallingConvention.Cdecl)]
 		public static extern int WriteStringToSharedMemory(uint hSharedMemory, [MarshalAs(UnmanagedType.LPTStr)]string data);
 
-		[DllImport("SharedMemory", CallingConvention = CallingConvention.Cdecl)]
+		[DllImport("Wyphon", CallingConvention = CallingConvention.Cdecl)]
 		public static extern bool UnlockSharedMemory(uint hSharedMemory);
 
-		[DllImport("SharedMemory", CallingConvention = CallingConvention.Cdecl)]
+		[DllImport("Wyphon", CallingConvention = CallingConvention.Cdecl)]
 		public static extern bool DestroySharedMemory(uint hSharedMemory);
-		#endregion SharedMemory.dll imports
+		#endregion SharedMemory.dll or Wyphon.dll imports
 		
 		#region SharedData.dll imports
 //
@@ -86,16 +86,23 @@ namespace ShareDataTest.TestClasses
 		}
 
 
-		static void DoTestSharedMemory() {
-			uint hSharedMemory = CreateSharedMemory("MyFileMappingObject", 1, 64);
+		public static void DoTestSharedMemory() {
+			Console.Write("Which channel (0-9) do you want to use: ");
+			char input = Console.ReadKey(true).KeyChar;//.ReadLine();
+			while ( input != '0' && input != '1' && input != '2' && input != '3' && input != '4' && input != '5' && input != '6' && input != '7' && input != '8' && input != '9' ) {
+				input = Console.ReadKey(true).KeyChar;
+			}
+			string channel = input.ToString();
+
+			uint hSharedMemory = CreateSharedMemory("MyFileMappingObject/" + channel, 1, 64);
 			if (hSharedMemory != 0) {
 				try {
 		
-					Console.WriteLine("Press L or U to try to lock or unlock the semaphore (or 'q' to quit)...");
+					Console.WriteLine("Talking on channel " + channel + ". Press L or U to try to lock or unlock the semaphore (or 'q' to quit)...");
 					
 					bool locked = false;
 					
-					char input = Console.ReadKey(true).KeyChar;//.ReadLine();
+					input = Console.ReadKey(true).KeyChar;//.ReadLine();
 					while ( input != 'q' ) {
 //						Console.WriteLine( locked ? "TRYING TO UNLOCK" : " TRYING TO LOCK" );
 

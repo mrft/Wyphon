@@ -110,13 +110,19 @@ namespace ShareDataTest.TestClasses
 		public void DoTestLocalMessageBroadcast() {
 			Console.Write("What's your name: ");
 			string name = Console.ReadLine();
-			Console.WriteLine("Welcome " + name + "! You can talk to the other by typing s, then your message and pressing <enter>");
+			Console.Write("Which channel (0-9) do you want to use: ");
+			char input = Console.ReadKey(true).KeyChar;//.ReadLine();
+			while ( input != '0' && input != '1' && input != '2' && input != '3' && input != '4' && input != '5' && input != '6' && input != '7' && input != '8' && input != '9' ) {
+				input = Console.ReadKey(true).KeyChar;
+			}
+			Console.WriteLine("\n");
+			string channel = input.ToString();
 			
 			joinedDelegate = BroadcastMessagePartnerJoinedCallback;
 			leftDelegate = BroadcastMessagePartnerLeftCallback;
 			receivedDelegate = BroadcastMessageReceivedCallback;
 			uint hLocalMessageBroadcastPartner = CreateLocalMessageBroadcastPartner(
-					"BroadcastTest", 
+					"BroadcastTest/channel" + channel, 
 					name, 
 					IntPtr.Zero,
 					Marshal.GetFunctionPointerForDelegate(joinedDelegate),
@@ -126,7 +132,10 @@ namespace ShareDataTest.TestClasses
 						
 			if ( hLocalMessageBroadcastPartner > 0 ) {
 				try {
-					char input = Console.ReadKey(true).KeyChar;//.ReadLine();
+					Console.WriteLine("");
+					Console.WriteLine("Welcome " + name + "! You can talk to the others on channel " + channel + " by typing s, then your message and pressing <enter>");
+
+					input = Console.ReadKey(true).KeyChar;//.ReadLine();
 					while ( input != 'q' ) {						
 						if ( input == 's' ) {
 							Console.Write( name + " says: ");
