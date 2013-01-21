@@ -38,6 +38,9 @@ namespace LocalMessageBroadcast {
 	bool BroadcastMessage(HANDLE localMessageBroadcastPartnerHandle, void * data, unsigned int length);
 
 	extern "C" _declspec(dllexport)
+	bool SendMessageToSinglePartner(HANDLE localMessageBroadcastPartnerHandle, unsigned int partnerId, void * data, unsigned int length);
+
+	extern "C" _declspec(dllexport)
 	LPCTSTR GetBroadcastPartnerName(HANDLE localMessageBroadcastPartnerHandle, unsigned int partnerId);
 
 	extern "C" _declspec(dllexport)

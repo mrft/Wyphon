@@ -49,6 +49,9 @@ namespace LocalMessageBroadcast
 		[DllImport("Wyphon", CallingConvention = CallingConvention.Cdecl)]
 		private static extern bool BroadcastMessage(uint hLocalMessageBroadcastPartner, byte[] data, uint length);
 
+        [DllImport("Wyphon", CallingConvention = CallingConvention.Cdecl)]
+        private static extern bool SendMessageToSinglePartner(uint hLocalMessageBroadcastPartner, uint partnerId, byte[] data, uint length);
+
 		[DllImport("Wyphon", CallingConvention = CallingConvention.Cdecl)]
 		private static extern IntPtr GetBroadcastPartnerName(uint hLocalMessageBroadcastPartner, uint partnerId);
 
@@ -146,7 +149,12 @@ namespace LocalMessageBroadcast
 		public bool BroadcastMessage(byte[] data) {
 			return BroadcastMessage(localMessageBroadcastPartnerHandle, data, (uint) data.Length);
 		}
-		
+
+        public bool SendMessageToSinglePartner(uint partnerId, byte[] data)
+        {
+            return SendMessageToSinglePartner(localMessageBroadcastPartnerHandle, partnerId, data, (uint)data.Length);
+        }
+
 		public void Dispose() {
 			if (localMessageBroadcastPartnerHandle != 0) {
 				DestroyLocalMessageBroadcastPartner(localMessageBroadcastPartnerHandle);

@@ -342,6 +342,36 @@ namespace LocalMessageBroadcast {
 	}
 
 
+	bool WriteToSingleMailslot(LocalMessageBroadcastPartnerDescriptor * pLocalMessageBroadcastPartner, unsigned int partnerId, BYTE * data, int len) {
+		
+		bool success = true;
+
+		if ( pLocalMessageBroadcastPartner->writerMailslotHandlesMap->count(partnerId) > 0 ) {
+			HANDLE hFile = pLocalMessageBroadcastPartner->writerMailslotHandlesMap->at(partnerId);
+			BOOL fResult;
+			DWORD cbWritten; 
+
+//		    	wcout << "Try to write to mailsot " << hFile << " aka " << itr->second << "\n";
+			
+			fResult = WriteFile(hFile, data, len, &cbWritten, (LPOVERLAPPED) NULL);
+
+			if (!fResult) {
+				success = false;
+				printf("WriteFile failed with %d.\n", GetLastError()); 
+			}
+			else {
+				//printf("Slot written to successfully.\n"); 
+			}
+		}
+		else {
+//		    wcout << "No partner mailslots found, so do nothing..." << "\n";
+			success = false;
+		}
+		
+		return success;
+	}
+
+
 	bool WriteToAllMailslots(LocalMessageBroadcastPartnerDescriptor * pLocalMessageBroadcastPartner, BYTE * data, int len) {
 		
 		bool success = true;
@@ -357,21 +387,26 @@ namespace LocalMessageBroadcast {
 			for ( itr = pLocalMessageBroadcastPartner->writerMailslotHandlesMap->begin(); itr != pLocalMessageBroadcastPartner->writerMailslotHandlesMap->end(); ++itr ) {
 				//don't write to your own mailslot
 				if (itr->first != pLocalMessageBroadcastPartner->myId) {
-					HANDLE hFile = itr->second;
-					BOOL fResult;
-					DWORD cbWritten; 
-		
-	//		    	wcout << "Try to write to mailsot " << hFile << " aka " << itr->second << "\n";
-					
-					fResult = WriteFile(hFile, data, len, &cbWritten, (LPOVERLAPPED) NULL);
-		
-					if (!fResult) {
+				
+					if ( ! WriteToSingleMailslot(pLocalMessageBroadcastPartner, itr->first, data, len) ) {
 						success = false;
-						printf("WriteFile failed with %d.\n", GetLastError()); 
 					}
-					else {
-						//printf("Slot written to successfully.\n"); 
-					}
+					
+//					HANDLE hFile = itr->second;
+//					BOOL fResult;
+//					DWORD cbWritten; 
+//		
+//	//		    	wcout << "Try to write to mailsot " << hFile << " aka " << itr->second << "\n";
+//					
+//					fResult = WriteFile(hFile, data, len, &cbWritten, (LPOVERLAPPED) NULL);
+//		
+//					if (!fResult) {
+//						success = false;
+//						printf("WriteFile failed with %d.\n", GetLastError()); 
+//					}
+//					else {
+//						//printf("Slot written to successfully.\n"); 
+//					}
 				}
 			}
 		}
@@ -1005,7 +1040,29 @@ namespace LocalMessageBroadcast {
 		return pLocalMessageBroadcastPartner;
 	}
 
+	extern "C" _declspec(dllexport)
+	bool SendMessageToSinglePartner(HANDLE localMessageBroadcastPartnerHandle, unsigned int partnerId, void * data, unsigned int length) {
+		LocalMessageBroadcastPartnerDescriptor * pLocalMessageBroadcastPartner = (LocalMessageBroadcastPartnerDescriptor *) localMessageBroadcastPartnerHandle;
 
+//		wcout << "Trying to CreateMessage " << pLocalMessageBroadcastPartner << " of length " << length << "\n";
+
+		BYTE * msgData;
+		int msgDataSize = CreateMessage(pLocalMessageBroadcastPartner, data, length, &msgData);
+		
+		bool success = msgDataSize > 0;
+
+		if ( success ) {
+//			wcout << "Trying to WriteToSingleMailslot" << pLocalMessageBroadcastPartner << "\n";
+
+			success = WriteToSingleMailslot( pLocalMessageBroadcastPartner, partnerId, msgData, msgDataSize );
+			delete msgData;
+		}
+
+//		wcout << "Shared object with handle=" << pObject->hSharedTexture << " " << pObject->width << "x" << pObject->height << "\n";
+		
+		return success;	
+	}
+	
 	extern "C" _declspec(dllexport)
 	bool BroadcastMessage(HANDLE localMessageBroadcastPartnerHandle, void * data, unsigned int length) {
 		LocalMessageBroadcastPartnerDescriptor * pLocalMessageBroadcastPartner = (LocalMessageBroadcastPartnerDescriptor *) localMessageBroadcastPartnerHandle;

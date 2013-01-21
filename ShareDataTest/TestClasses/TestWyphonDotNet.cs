@@ -41,7 +41,7 @@ namespace ShareDataTest.TestClasses
 				wp.WyphonPartnerLeftEvent += WyphonDotNetPartnerLeftCallback;
 				wp.WyphonPartnerD3DTextureSharedEvent += 
 					delegate(uint sendingPartnerId, uint sharedTextureHandle, uint width, uint height, uint format, uint usage, string description) {
-						Console.WriteLine("DotNet new shared texture by partner " + sendingPartnerId + ". Its handle = " + sharedTextureHandle +  " and its other data = " + width + "x" + height + ":" + usage + " : " + description);
+						Console.WriteLine("DotNet new shared texture by partner " + sendingPartnerId + ". Its handle = " + sharedTextureHandle +  " and its other data = " + width + "x" + height + ":fmt" + format + ":usg"+ usage + " : " + description);
 					};
 				wp.WyphonPartnerD3DTextureUnsharedEvent += 
 					delegate(uint sendingPartnerId, uint sharedTextureHandle, uint width, uint height, uint format, uint usage, string description) {

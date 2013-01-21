@@ -40,17 +40,8 @@
     <DefineConstants>TRACE</DefineConstants>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="LocalMessageBroadcast">
-      <HintPath>..\Debug\LocalMessageBroadcast.dll</HintPath>
-    </Reference>
     <Reference Include="LocalMessageBroadcastDotNet">
       <HintPath>..\LocalMessageBroadcast\bin\Debug\LocalMessageBroadcastDotNet.dll</HintPath>
-    </Reference>
-    <Reference Include="SharedData">
-      <HintPath>..\Debug\SharedData.dll</HintPath>
-    </Reference>
-    <Reference Include="SharedMemory">
-      <HintPath>..\Debug\SharedMemory.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core">

@@ -37,7 +37,7 @@ namespace ShareDataTest.TestClasses
 			do {
 				Console.Write("What's your name: ");
 				string name = Console.ReadLine();
-				Console.WriteLine("Welcome " + name + ". You can say something by typing s, q to quit.");
+				Console.WriteLine("Welcome " + name + ". You can say something by typing 's', type 'S' for a message to only 1 partner, q to quit.");
 	
 				localMessageBroadcastPartner = new LocalMessageBroadcastPartner(name, "TESTCHANNEL");
 				localMessageBroadcastPartner.OnPartnerJoined += PartnerJoinedHandler;
@@ -49,7 +49,7 @@ namespace ShareDataTest.TestClasses
 				
 				if ( localMessageBroadcastPartner != null ) {
 					try {
-						Console.WriteLine("We have ID = " + localMessageBroadcastPartner.PartnerId);
+						Console.WriteLine("We have ID = " + localMessageBroadcastPartner.PartnerId.ToString());
 						
 						char input = Console.ReadKey(true).KeyChar;//.ReadLine();
 						while ( input != 'q' ) {
@@ -59,6 +59,19 @@ namespace ShareDataTest.TestClasses
 								
 								byte[] stringBytes = new System.Text.UnicodeEncoding().GetBytes(msg);
 								localMessageBroadcastPartner.BroadcastMessage(stringBytes);
+							}
+							else if ( input == 'S' ) {
+								uint partnerId;
+								Console.Write("To which partner ID do you want to speak: ");
+								while ( ! UInt32.TryParse( Console.ReadLine(), out partnerId) ) {
+									Console.Write("Error, you need to give an integer: ");
+								}
+								
+								Console.Write("" + name + " says: ");
+								string msg = Console.ReadLine();
+								
+								byte[] stringBytes = new System.Text.UnicodeEncoding().GetBytes(msg);
+								localMessageBroadcastPartner.SendMessageToSinglePartner(partnerId, stringBytes);								
 							}
 							
 							input = Console.ReadKey(true).KeyChar;

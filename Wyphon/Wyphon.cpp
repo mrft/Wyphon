@@ -12,6 +12,7 @@
 #include <list>
 #include <map>
 #include <sstream>
+#include <d3d9.h>
 #include <d3d9types.h>
 //#include <thread>
 #include <process.h>
@@ -298,7 +299,8 @@ namespace Wyphon {
 			bool success = dataSize > 0;
 	
 			if ( success ) {
-				success = BroadcastMessage( pWyphonPartner->hLocalMessageBroadcastPartner, data, dataSize );
+				success = SendMessageToSinglePartner( pWyphonPartner->hLocalMessageBroadcastPartner, sendingPartnerId, data, dataSize );
+				//success = BroadcastMessage( pWyphonPartner->hLocalMessageBroadcastPartner, data, dataSize );
 				delete data; 
 			}
 		}
