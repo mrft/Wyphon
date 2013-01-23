@@ -155,8 +155,11 @@ namespace LocalMessageBroadcast {
 		LPMessageReceivedCALLBACK msgReceivedCallbackFunc;
 
 		void * callbackFuncCustomData;	//will be sent with Callback functions, and can contain data specific to the user
-	};
 
+		//for receiving messages
+		int currentReadBufferSize;
+		BYTE * readBuffer;
+	};
 
 
 
@@ -480,6 +483,10 @@ namespace LocalMessageBroadcast {
 	int CreateMessage( LocalMessageBroadcastPartnerDescriptor * pLocalMessageBroadcastPartner, void * pObject, unsigned int objectSize, BYTE ** data ) {
 		int dataSize = 1 + sizeof(pLocalMessageBroadcastPartner->myId) + sizeof(objectSize) + objectSize;
 		
+		//if ( dataSize > maxMsgSize ) {
+		//	throw "Max message size is " + maxMsgSize + "and the message you want to send would have a size of " + dataSize + " bytes.";
+		//}
+		
 		(*data) = new BYTE[dataSize];
 		(*data)[0] = LOCAL_MSG_BROADCAST_MESSAGE;
 		
@@ -713,11 +720,21 @@ namespace LocalMessageBroadcast {
 				//read the message, and call the callback function
 				
 				DWORD nrOfBytesRead;
-				BYTE buffer[1024];
+
+				if ( pLocalMessageBroadcastPartner->currentReadBufferSize < nextSize ) {
+					//allocate new, larger buffer
+					delete(pLocalMessageBroadcastPartner->readBuffer);
+					int newReadBufferSize = nextSize + 1024;
+					pLocalMessageBroadcastPartner->readBuffer = new BYTE[newReadBufferSize];
+					pLocalMessageBroadcastPartner->currentReadBufferSize = newReadBufferSize;
+				}
+
+				BYTE * buffer = pLocalMessageBroadcastPartner->readBuffer;
+
 				//WE NEED TO KNOW THE CORRECT MESSAGE SIZE = nextSize for each message
 				//for ( int i = 0; i < messageCount; i++ ) {
 				do {
-					if ( ReadFile( pLocalMessageBroadcastPartner->hReaderMailslot, &buffer, nextSize, &nrOfBytesRead, NULL) ) {
+					if ( ReadFile( pLocalMessageBroadcastPartner->hReaderMailslot, buffer, nextSize, &nrOfBytesRead, NULL) ) {
 						//parse message and do the appropriate callback
 						if ( buffer[0] == LOCAL_MSG_BROADCAST_HELLO ) {
 							//wcout << "ListenerThread received a [LOCAL_MSG_BROADCAST_HELLO] message." << "\n";
@@ -795,6 +812,10 @@ namespace LocalMessageBroadcast {
 			Sleep(READERMAILSLOT_TIMEOUT + 200);
 		}
 		
+		delete pLocalMessageBroadcastPartner->readBuffer;
+
+
+
 		//Remove yourself from sharedMemory
 		///////////////////////////////////
 		bool success = false;
@@ -925,7 +946,9 @@ namespace LocalMessageBroadcast {
 		pLocalMessageBroadcastPartner->callbackFuncCustomData = callbackFuncCustomData;
 //		wcout << "callbackFuncCustomData = " << callbackFuncCustomData << " " <<  pLocalMessageBroadcastPartner->callbackFuncCustomData << "\n";
 		
-		
+		pLocalMessageBroadcastPartner->currentReadBufferSize = 128;
+		pLocalMessageBroadcastPartner->readBuffer = new BYTE[128];
+
 		//Open mailsot handles for every-one that's already in shared memory
 		//and create one of your own and share that in shared memory
 		
