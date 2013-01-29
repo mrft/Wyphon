@@ -251,7 +251,10 @@ namespace Wyphon {
 		bool success = AddD3DTextureSharedByPartner(pWyphonPartner, sendingPartnerId, pTextureInfo);
 		
 		if ( pWyphonPartner->pD3DtextureSharingStartedCallbackFunc != NULL ) {
-			pWyphonPartner->pD3DtextureSharingStartedCallbackFunc(pWyphonPartner, sendingPartnerId, pTextureInfo->hSharedTexture, pTextureInfo->width, pTextureInfo->height, pTextureInfo->format, pTextureInfo->usage, pTextureInfo->description );
+			try {
+				pWyphonPartner->pD3DtextureSharingStartedCallbackFunc(pWyphonPartner, sendingPartnerId, pTextureInfo->hSharedTexture, pTextureInfo->width, pTextureInfo->height, pTextureInfo->format, pTextureInfo->usage, pTextureInfo->description );
+			} catch (exception) {
+			}
 		}
 		
 		return success;
@@ -271,7 +274,10 @@ namespace Wyphon {
 		if ( pWyphonPartner->pD3DtextureSharingStoppedCallbackFunc != NULL ) {
 			WyphonD3DTextureInfo* pTextureInfo = ( ( * ( pWyphonPartner->sharedByPartnersD3DTexturesMap ) )[sendingPartnerId])[textureHandle];
 			//HANDLE sharedTextureHandle, unsigned int width, unsigned int height, DWORD usage, LPTSTR description
-			pWyphonPartner->pD3DtextureSharingStoppedCallbackFunc( pWyphonPartner, sendingPartnerId, pTextureInfo->hSharedTexture, pTextureInfo->width, pTextureInfo->height, pTextureInfo->format, pTextureInfo->usage, pTextureInfo->description );
+			try {
+				pWyphonPartner->pD3DtextureSharingStoppedCallbackFunc( pWyphonPartner, sendingPartnerId, pTextureInfo->hSharedTexture, pTextureInfo->width, pTextureInfo->height, pTextureInfo->format, pTextureInfo->usage, pTextureInfo->description );
+			} catch (exception) {
+			}
 		}
 
 		bool success = RemoveD3DTextureSharedByPartner(pWyphonPartner, sendingPartnerId, textureHandle);
@@ -288,8 +294,8 @@ namespace Wyphon {
 		
 		
 		//send him a list of everything we are currently sharing
-//		map<HANDLE, WyphonD3DTextureInfo* > * texturesMap =  &(*(pWyphonPartner->sharedByUsD3DTexturesMap));
-		map<HANDLE, WyphonD3DTextureInfo* > * texturesMap =  pWyphonPartner->sharedByUsD3DTexturesMap;
+//		map<HANDLE, WyphonD3DTextureInfo* > * texturesMap = &(*(pWyphonPartner->sharedByUsD3DTexturesMap));
+		map<HANDLE, WyphonD3DTextureInfo* > * texturesMap = pWyphonPartner->sharedByUsD3DTexturesMap;
 		map<HANDLE, WyphonD3DTextureInfo*>::iterator itr;
 
 		for ( itr = (*texturesMap).begin(); itr != (*texturesMap).end(); ++itr ) {

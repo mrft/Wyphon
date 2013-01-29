@@ -300,15 +300,20 @@ namespace LocalMessageBroadcast {
 		for ( int i = 0; i < nrOfIds; i++ ) {
 			unsigned int id = ids[i];
 			
-			//wcout << "Current mailslot id = " << id;
+			//wcout << "Current mailslot id = " << id << " ";
 			
 			if ( id == 0 ) {
 				//wcout << " = 0 so don't try to open it..." << "\n";
 			}
 			else {
 				//wcout << " != 0 so try to open the mailslot ";
-			
-				success = success && CreateWriterMailslot(pLocalMessageBroadcastPartner, id);
+				if ( ! CreateWriterMailslot(pLocalMessageBroadcastPartner, id) ) {
+					//wcout << "created successfully" << "\n";
+					success = false;;
+				}
+				else {
+					//wcout << " NOT CREATED !!!" << "\n";
+				}
 			}		
 		}
 		
@@ -367,7 +372,7 @@ namespace LocalMessageBroadcast {
 			}
 		}
 		else {
-//		    wcout << "No partner mailslots found, so do nothing..." << "\n";
+//		    wcout << "No partner mailslots found, so do nothing..." << "\n";WriteToAllMailslots
 			success = false;
 		}
 		
@@ -391,8 +396,13 @@ namespace LocalMessageBroadcast {
 				//don't write to your own mailslot
 				if (itr->first != pLocalMessageBroadcastPartner->myId) {
 				
+					wcout << "Try to write to partner " << itr->first << "'s mailsot aka " << itr->second << "\n";
 					if ( ! WriteToSingleMailslot(pLocalMessageBroadcastPartner, itr->first, data, len) ) {
 						success = false;
+						wcout << "failed !" << "\n";
+					}
+					else {
+						wcout << "success !" << "\n";
 					}
 					
 //					HANDLE hFile = itr->second;
@@ -410,6 +420,9 @@ namespace LocalMessageBroadcast {
 //					else {
 //						//printf("Slot written to successfully.\n"); 
 //					}
+				}
+				else {
+					wcout << "Don't try to write to our own " << itr->first << " mailsot aka " << itr->second << "\n";
 				}
 			}
 		}
@@ -536,7 +549,9 @@ namespace LocalMessageBroadcast {
 		///////////////////////////////////////////////////////////////////
 
 		//find and open the mailslot and store its handle
-		success = success && CreateWriterMailslot( pLocalMessageBroadcastPartner, partnerId );
+		if ( ! CreateWriterMailslot( pLocalMessageBroadcastPartner, partnerId ) ) {
+			success = false;
+		}
 		
 		map<unsigned int, wstring> * namesMap = pLocalMessageBroadcastPartner->partnerNamesMap;
 
@@ -572,7 +587,10 @@ namespace LocalMessageBroadcast {
 
 		//call the callback function
 		if ( pLocalMessageBroadcastPartner->partnerJoinedCallbackFunc != NULL ) {
-			(*(pLocalMessageBroadcastPartner->partnerJoinedCallbackFunc))(pLocalMessageBroadcastPartner, partnerId, wstrName.c_str(), pLocalMessageBroadcastPartner->callbackFuncCustomData);
+			try {
+				(*(pLocalMessageBroadcastPartner->partnerJoinedCallbackFunc))(pLocalMessageBroadcastPartner, partnerId, wstrName.c_str(), pLocalMessageBroadcastPartner->callbackFuncCustomData);
+			} catch (exception) {
+			}
 		}
 		
 		return success;
@@ -605,7 +623,9 @@ namespace LocalMessageBroadcast {
 		map<unsigned int, wstring> * namesMap = pLocalMessageBroadcastPartner->partnerNamesMap;
 
 		//find and open the mailslot and store its handle
-		success = success && CreateWriterMailslot( pLocalMessageBroadcastPartner, partnerId );
+		if ( ! CreateWriterMailslot( pLocalMessageBroadcastPartner, partnerId ) ) {
+			success = false;
+		}
 		
 		((*namesMap)[partnerId]).clear(); //clear the current name for the mailslot string
 		(*namesMap)[partnerId].append( name, name_length );
@@ -614,7 +634,10 @@ namespace LocalMessageBroadcast {
 
 		//call the callback function
 		if ( pLocalMessageBroadcastPartner->partnerJoinedCallbackFunc != NULL ) {
-			(*(pLocalMessageBroadcastPartner->partnerJoinedCallbackFunc))(pLocalMessageBroadcastPartner, partnerId, wstrName.c_str(), pLocalMessageBroadcastPartner->callbackFuncCustomData);
+			try {
+				(*(pLocalMessageBroadcastPartner->partnerJoinedCallbackFunc))(pLocalMessageBroadcastPartner, partnerId, wstrName.c_str(), pLocalMessageBroadcastPartner->callbackFuncCustomData);
+			} catch (exception) {
+			}
 		}
 
 		return success;
@@ -633,7 +656,10 @@ namespace LocalMessageBroadcast {
 		
 		//call the callback function
 		if ( pLocalMessageBroadcastPartner->partnerLeftCallbackFunc != NULL ) {
-			(*(pLocalMessageBroadcastPartner->partnerLeftCallbackFunc))(pLocalMessageBroadcastPartner, partnerId, pLocalMessageBroadcastPartner->callbackFuncCustomData);
+			try {
+				(*(pLocalMessageBroadcastPartner->partnerLeftCallbackFunc))(pLocalMessageBroadcastPartner, partnerId, pLocalMessageBroadcastPartner->callbackFuncCustomData);
+			} catch (exception) {
+			}
 		}
 
 		
@@ -670,7 +696,10 @@ namespace LocalMessageBroadcast {
 
 		//callback that a message has been received
 		if ( pLocalMessageBroadcastPartner->msgReceivedCallbackFunc != NULL ) {
-			((pLocalMessageBroadcastPartner->msgReceivedCallbackFunc))(pLocalMessageBroadcastPartner, partnerId, pMsgData, msgLength, pLocalMessageBroadcastPartner->callbackFuncCustomData);
+			try {
+				((pLocalMessageBroadcastPartner->msgReceivedCallbackFunc))(pLocalMessageBroadcastPartner, partnerId, pMsgData, msgLength, pLocalMessageBroadcastPartner->callbackFuncCustomData);
+			} catch (exception) {
+			}
 		}
 
 		//wcout << "msgReceivedCallbackFunc FINISHED SUCCESSFULLY " << "\n";
@@ -801,12 +830,15 @@ namespace LocalMessageBroadcast {
 
 		if (fResult) {
 			//STOP essage sent, so Wait until listenerThread is done
-			while ( pLocalMessageBroadcastPartner->listenerThreadRunning ) {
+			int slept = 0;
+			while ( pLocalMessageBroadcastPartner->listenerThreadRunning && slept <= READERMAILSLOT_TIMEOUT ) {
 				Sleep(1);
 			}
 		}
-		else {
-			//sending STOP message failed, so set 'running' ta false here, and wait long enough so the thread will certainly have stopped reading
+		
+		//Still running ???
+		if ( pLocalMessageBroadcastPartner->listenerThreadRunning ) {
+			//sending STOP message failed, so set 'running' to false here, and wait long enough so the thread will certainly have stopped reading
 			printf("WriteFile failed with %d.\n", GetLastError());
 			pLocalMessageBroadcastPartner->listenerThreadRunning = false;
 			Sleep(READERMAILSLOT_TIMEOUT + 200);
@@ -946,8 +978,8 @@ namespace LocalMessageBroadcast {
 		pLocalMessageBroadcastPartner->callbackFuncCustomData = callbackFuncCustomData;
 //		wcout << "callbackFuncCustomData = " << callbackFuncCustomData << " " <<  pLocalMessageBroadcastPartner->callbackFuncCustomData << "\n";
 		
-		pLocalMessageBroadcastPartner->currentReadBufferSize = 128;
-		pLocalMessageBroadcastPartner->readBuffer = new BYTE[128];
+		pLocalMessageBroadcastPartner->currentReadBufferSize = 2;
+		pLocalMessageBroadcastPartner->readBuffer = new BYTE[2];
 
 		//Open mailsot handles for every-one that's already in shared memory
 		//and create one of your own and share that in shared memory
@@ -961,7 +993,7 @@ namespace LocalMessageBroadcast {
 			int nrOfIds = ReadSharedMemory( pLocalMessageBroadcastPartner->hSharedMemory, idBytes ) / sizeof(unsigned int);
 			unsigned int * ids = (unsigned int *)idBytes;			
 
-//			wcout << "I found " << nrOfIds << " ids in shared data..." << "\n";
+			wcout << "I found " << nrOfIds << " ids in shared data..." << "\n";
 
 			if ( nrOfIds > 0 ) {
 				
