@@ -71,8 +71,12 @@
     <Compile Include="TestClasses\TestWyphon.cs" />
     <Compile Include="TestClasses\TestWyphonDotNet.cs" />
   </ItemGroup>
+  <ItemGroup />
   <ItemGroup>
-    <Folder Include="TestClasses" />
+    <ProjectReference Include="..\Wyphon\Wyphon.vcxproj">
+      <Project>{688f8418-905f-425e-89a3-3f4bd70df886}</Project>
+      <Name>Wyphon %28Visual Studio 2010%29</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.Targets" />
 </Project>
