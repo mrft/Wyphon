@@ -154,14 +154,15 @@ namespace Wyphon {
 
 
 	/// data should be deleted afterwards by the caller !!!
-	__int32 CreateUnshareTextureMessage(WyphonPartnerDescriptor * pWyphonPartner, HANDLE sharedTextureHandle, BYTE ** data) {
+	__int32 CreateUnshareD3DTextureMessage(WyphonPartnerDescriptor * pWyphonPartner, HANDLE sharedTextureHandle, BYTE ** data) {
 		__int32 dataSize = 1 + sizeof(sharedTextureHandle);
 		(*data) = new BYTE[dataSize];
 		(*data)[0] = WYPHON_STOP_SHARING_D3DTEXTURE;
 
 		BYTE * addr = (*data) + 1;
-		__int32 len = sizeof(sharedTextureHandle);
-		CopyMemory( addr, (VOID *) &sharedTextureHandle, len );
+		__int32 len = sizeof(unsigned __int32); //always send handles as unsigned __int32 !!!
+		unsigned __int32 handleToBeSent = (unsigned __int32) sharedTextureHandle;
+		CopyMemory( addr, (VOID *) &handleToBeSent, len );
 		
 		return dataSize;
 	}
@@ -267,8 +268,8 @@ namespace Wyphon {
 		//parse the message
 		///////////////////
 		BYTE * pData = data + 1;
-		__int32 len = sizeof(HANDLE);
-		HANDLE textureHandle = *((HANDLE *)pData);
+		__int32 len = sizeof(unsigned __int32); //always send HANDLES as unsigned int32 
+		HANDLE textureHandle = (HANDLE)*((unsigned __int32 *)pData);
 		
 //		wcout << "Wyphon: Texture NOT shared ANYMORE  by " <<  GetBroadcastPartnerName(pWyphonPartner->hLocalMessageBroadcastPartner, sendingPartnerId) << "(" << sendingPartnerId << ")" << " handle=" << textureHandle << "\n";
 
@@ -387,7 +388,7 @@ namespace Wyphon {
 		WyphonPartnerDescriptor * pWyphonPartner = (WyphonPartnerDescriptor *) wyphonPartnerHandle;
 
 		BYTE * data;
-		__int32 dataSize = CreateUnshareTextureMessage(pWyphonPartner, sharedTextureHandle, &data);
+		__int32 dataSize = CreateUnshareD3DTextureMessage(pWyphonPartner, sharedTextureHandle, &data);
 		
 		bool success = dataSize > 0;
 		if ( success ) {
