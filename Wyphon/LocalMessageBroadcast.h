@@ -18,9 +18,9 @@ namespace LocalMessageBroadcast {
 
 
 	//CALLBACK DEFINITIONS
-	typedef bool ( * LPLocalMessageBroadcastPartnerJoinedCALLBACK)( HANDLE localMessageBroadcastPartnerHandle, unsigned int sendingPartnerId, LPCTSTR sendingPartnerName, void * customData );
-	typedef bool ( * LPLocalMessageBroadcastPartnerLeftCALLBACK)( HANDLE localMessageBroadcastPartnerHandle, unsigned int sendingPartnerId, void * customData);
-	typedef bool ( * LPMessageReceivedCALLBACK)( HANDLE localMessageBroadcastPartnerHandle, unsigned int sendingPartnerId, void * msgData, unsigned int msgLength, void * customData );
+	typedef bool ( * LPLocalMessageBroadcastPartnerJoinedCALLBACK)( HANDLE localMessageBroadcastPartnerHandle, unsigned __int32 sendingPartnerId, LPCTSTR sendingPartnerName, void * customData );
+	typedef bool ( * LPLocalMessageBroadcastPartnerLeftCALLBACK)( HANDLE localMessageBroadcastPartnerHandle, unsigned __int32 sendingPartnerId, void * customData);
+	typedef bool ( * LPMessageReceivedCALLBACK)( HANDLE localMessageBroadcastPartnerHandle, unsigned __int32 sendingPartnerId, void * msgData, unsigned __int32 msgLength, void * customData );
 
 
 	extern "C" _declspec(dllexport)
@@ -35,16 +35,16 @@ namespace LocalMessageBroadcast {
 	);
 	
 	extern "C" _declspec(dllexport)
-	bool BroadcastMessage(HANDLE localMessageBroadcastPartnerHandle, void * data, unsigned int length);
+	bool BroadcastMessage(HANDLE localMessageBroadcastPartnerHandle, void * data, unsigned __int32 length);
 
 	extern "C" _declspec(dllexport)
-	bool SendMessageToSinglePartner(HANDLE localMessageBroadcastPartnerHandle, unsigned int partnerId, void * data, unsigned int length);
+	bool SendMessageToSinglePartner(HANDLE localMessageBroadcastPartnerHandle, unsigned __int32 partnerId, void * data, unsigned __int32 length);
 
 	extern "C" _declspec(dllexport)
-	LPCTSTR GetBroadcastPartnerName(HANDLE localMessageBroadcastPartnerHandle, unsigned int partnerId);
+	LPCTSTR GetBroadcastPartnerName(HANDLE localMessageBroadcastPartnerHandle, unsigned __int32 partnerId);
 
 	extern "C" _declspec(dllexport)
-	unsigned int GetBroadcastPartnerId(HANDLE localMessageBroadcastPartnerHandle);
+	unsigned __int32 GetBroadcastPartnerId(HANDLE localMessageBroadcastPartnerHandle);
 
 //	/// <summary>
 //	///

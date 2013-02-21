@@ -20,47 +20,47 @@ namespace ShareDataTest.TestClasses
 	{
 		#region SharedMemory.dll or Wyphon.dll imports
 		[DllImport("Wyphon", CallingConvention = CallingConvention.Cdecl)]
-		public static extern uint CreateSharedMemory([MarshalAs(UnmanagedType.LPTStr)]string name, uint startSize, uint maxSize);
+		public static extern UInt32 CreateSharedMemory([MarshalAs(UnmanagedType.LPTStr)]string name, UInt32 startSize, UInt32 maxSize);
 
 		[DllImport("Wyphon", CallingConvention = CallingConvention.Cdecl)]
-		public static extern bool LockSharedMemory(uint hSharedMemory, uint timeoutInMilliseconds);
+		public static extern bool LockSharedMemory(UInt32 hSharedMemory, UInt32 timeoutInMilliseconds);
 
 //		[DllImport("SharedMemory", CallingConvention = CallingConvention.Cdecl)]
-//		public static extern IntPtr ReadSharedMemory(uint hSharedMemory);
+//		public static extern IntPtr ReadSharedMemory(UInt32 hSharedMemory);
 
 		[DllImport("Wyphon", CallingConvention = CallingConvention.Cdecl)]
-		public static extern int ReadSharedMemory( uint sharedDataHandle, out IntPtr pData);
+		public static extern int ReadSharedMemory( UInt32 sharedDataHandle, out IntPtr pData);
 
 		
 		[DllImport("Wyphon", CallingConvention = CallingConvention.Cdecl)]
-		public static extern int WriteSharedMemory( uint hSharedMemory, byte[] data, uint length, uint offset );
+		public static extern int WriteSharedMemory( UInt32 hSharedMemory, byte[] data, UInt32 length, UInt32 offset );
 
 		[DllImport("Wyphon", CallingConvention = CallingConvention.Cdecl)]
-		public static extern string ReadStringFromSharedMemory(uint hSharedMemory);
+		public static extern string ReadStringFromSharedMemory(UInt32 hSharedMemory);
 
 		[DllImport("Wyphon", CallingConvention = CallingConvention.Cdecl)]
-		public static extern int WriteStringToSharedMemory(uint hSharedMemory, [MarshalAs(UnmanagedType.LPTStr)]string data);
+		public static extern int WriteStringToSharedMemory(UInt32 hSharedMemory, [MarshalAs(UnmanagedType.LPTStr)]string data);
 
 		[DllImport("Wyphon", CallingConvention = CallingConvention.Cdecl)]
-		public static extern bool UnlockSharedMemory(uint hSharedMemory);
+		public static extern bool UnlockSharedMemory(UInt32 hSharedMemory);
 
 		[DllImport("Wyphon", CallingConvention = CallingConvention.Cdecl)]
-		public static extern bool DestroySharedMemory(uint hSharedMemory);
+		public static extern bool DestroySharedMemory(UInt32 hSharedMemory);
 		#endregion SharedMemory.dll or Wyphon.dll imports
 		
 		#region SharedData.dll imports
 //
 //		[DllImport("SharedData", CallingConvention = CallingConvention.Cdecl)]
-//		public static extern uint CreateSharedDataPartner([MarshalAs(UnmanagedType.LPTStr)]string sharedDataName, [MarshalAs(UnmanagedType.LPTStr)]string applicationName);
+//		public static extern UInt32 CreateSharedDataPartner([MarshalAs(UnmanagedType.LPTStr)]string sharedDataName, [MarshalAs(UnmanagedType.LPTStr)]string applicationName);
 //
 //		[DllImport("SharedData", CallingConvention = CallingConvention.Cdecl)]
-//		public static extern bool DestroySharedDataPartner(uint hWyphonPartner);
+//		public static extern bool DestroySharedDataPartner(UInt32 hWyphonPartner);
 //		
 //		[DllImport("SharedData", CallingConvention = CallingConvention.Cdecl)]
-//		public static extern bool ShareData(uint sharedDataPartnerHandle, uint sharedObjectHandle, [MarshalAs(UnmanagedType.LPTStr)]string sharedData, int nrOfBytes);
+//		public static extern bool ShareData(UInt32 sharedDataPartnerHandle, UInt32 sharedObjectHandle, [MarshalAs(UnmanagedType.LPTStr)]string sharedData, int nrOfBytes);
 //
 //		[DllImport("SharedData", CallingConvention = CallingConvention.Cdecl)]
-//		public static extern bool UnshareData(uint wyphonPartnerHandle, uint sharedObjectHandle);
+//		public static extern bool UnshareData(UInt32 wyphonPartnerHandle, UInt32 sharedObjectHandle);
 //
 		#endregion SharedData.dll imports
 
@@ -94,7 +94,7 @@ namespace ShareDataTest.TestClasses
 			}
 			string channel = input.ToString();
 
-			uint hSharedMemory = CreateSharedMemory("MyFileMappingObject/" + channel, 1, 64);
+			UInt32 hSharedMemory = CreateSharedMemory("MyFileMappingObject/" + channel, 1, 64);
 			if (hSharedMemory != 0) {
 				try {
 		
@@ -132,8 +132,8 @@ namespace ShareDataTest.TestClasses
 //								Console.Write("    Replace by: " );
 								string inputLine = Console.ReadLine();
 								//bool written = WriteStringToSharedMemory( hSharedMemory, input);
-								bool written = WriteSharedMemory( hSharedMemory, new System.Text.UTF8Encoding().GetBytes(inputLine), (uint)inputLine.Length, 0) > 0;
-								//WriteSharedMemory( hSharedMemory, new byte[32], 32, (uint)inputLine.Length);
+								bool written = WriteSharedMemory( hSharedMemory, new System.Text.UTF8Encoding().GetBytes(inputLine), (UInt32)inputLine.Length, 0) > 0;
+								//WriteSharedMemory( hSharedMemory, new byte[32], 32, (UInt32)inputLine.Length);
 								Console.WriteLine( written ? "OK" : "ERROR" );
 							}
 							else {

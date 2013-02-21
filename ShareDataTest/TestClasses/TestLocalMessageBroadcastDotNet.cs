@@ -24,11 +24,11 @@ namespace ShareDataTest.TestClasses
 		}
 		
 #region TestLocalMessageBroadcastDotNet functions
-		public void PartnerJoinedHandler(uint partnerId, string partnerName) {
+		public void PartnerJoinedHandler(UInt32 partnerId, string partnerName) {
 			Console.Out.WriteLine( partnerName + " joined the conversation..." );
 		}
 		
-		public void PartnerLeftHandler(uint partnerId) {
+		public void PartnerLeftHandler(UInt32 partnerId) {
 			Console.Out.WriteLine( localMessageBroadcastPartner.GetPartnerName(partnerId) + " left the conversation..." );
 		}
 
@@ -42,7 +42,7 @@ namespace ShareDataTest.TestClasses
 				localMessageBroadcastPartner = new LocalMessageBroadcastPartner(name, "TESTCHANNEL");
 				localMessageBroadcastPartner.OnPartnerJoined += PartnerJoinedHandler;
 				localMessageBroadcastPartner.OnPartnerLeft += PartnerLeftHandler;
-				localMessageBroadcastPartner.OnMessage += delegate(uint sendingPartnerId, IntPtr msgData, uint msgLength) {
+				localMessageBroadcastPartner.OnMessage += delegate(UInt32 sendingPartnerId, IntPtr msgData, UInt32 msgLength) {
 					Console.Out.WriteLine( localMessageBroadcastPartner.GetPartnerName(sendingPartnerId) + " says: "	+ Marshal.PtrToStringUni(msgData, (int)msgLength / 2) );
 				};
 
@@ -61,7 +61,7 @@ namespace ShareDataTest.TestClasses
 								localMessageBroadcastPartner.BroadcastMessage(stringBytes);
 							}
 							else if ( input == 'S' ) {
-								uint partnerId;
+								UInt32 partnerId;
 								Console.Write("To which partner ID do you want to speak: ");
 								while ( ! UInt32.TryParse( Console.ReadLine(), out partnerId) ) {
 									Console.Write("Error, you need to give an integer: ");

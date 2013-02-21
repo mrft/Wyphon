@@ -22,19 +22,19 @@ namespace ShareDataTest.TestClasses
 		#region Wyphon.dll imports & delegates
 
 		[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-		private unsafe delegate void WyphonPartnerJoinedCallbackDelegate(uint hLocalMessageBroadcastPartner, uint partnerId, IntPtr partnerNameLPTSTR, IntPtr customData);
+		private unsafe delegate void WyphonPartnerJoinedCallbackDelegate(UInt32 hLocalMessageBroadcastPartner, UInt32 partnerId, IntPtr partnerNameLPTSTR, IntPtr customData);
 
 		[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-		private unsafe delegate void WyphonPartnerLeftCallbackDelegate(uint hLocalMessageBroadcastPartner, uint partnerId, IntPtr customData);
+		private unsafe delegate void WyphonPartnerLeftCallbackDelegate(UInt32 hLocalMessageBroadcastPartner, UInt32 partnerId, IntPtr customData);
 
 		[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-		private unsafe delegate void D3DTextureSharingStartedCallbackDelegate( uint wyphonPartnerHandle, uint sendingPartnerId, uint sharedTextureHandle, uint width, uint height, uint format, uint usage, IntPtr descriptionLPTSTR );
+		private unsafe delegate void D3DTextureSharingStartedCallbackDelegate( UInt32 wyphonPartnerHandle, UInt32 sendingPartnerId, UInt32 sharedTextureHandle, UInt32 width, UInt32 height, UInt32 format, UInt32 usage, IntPtr descriptionLPTSTR );
 
 		[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-		private unsafe delegate void D3DTextureSharingStoppedCallbackDelegate( uint wyphonPartnerHandle, uint sendingPartnerId, uint sharedTextureHandle, uint width, uint height, uint format, uint usage, IntPtr descriptionLPTSTR );
+		private unsafe delegate void D3DTextureSharingStoppedCallbackDelegate( UInt32 wyphonPartnerHandle, UInt32 sendingPartnerId, UInt32 sharedTextureHandle, UInt32 width, UInt32 height, UInt32 format, UInt32 usage, IntPtr descriptionLPTSTR );
 
 		[DllImport("Wyphon", CallingConvention = CallingConvention.Cdecl)]
-		private static extern uint CreateWyphonPartner([MarshalAs(UnmanagedType.LPTStr)]string applicationName,
+		private static extern UInt32 CreateWyphonPartner([MarshalAs(UnmanagedType.LPTStr)]string applicationName,
 														IntPtr pCallbackFuncCustomData,
 														IntPtr pPartnerJoinedCallbackFunc,
 														IntPtr pPartnerLeftCallbackFunc,
@@ -43,24 +43,32 @@ namespace ShareDataTest.TestClasses
 		                                             );
 
 		[DllImport("Wyphon", CallingConvention = CallingConvention.Cdecl)]
-		private static extern bool DestroyWyphonPartner(uint hWyphonPartner);
+		private static extern bool DestroyWyphonPartner(UInt32 hWyphonPartner);
 		
 		[DllImport("Wyphon", CallingConvention = CallingConvention.Cdecl)]
-		private static extern bool ShareD3DTexture(uint wyphonPartnerHandle, uint sharedTextureHandle, uint width, uint height, uint format, uint usage, [MarshalAs(UnmanagedType.LPTStr)]string description);
+		private static extern bool ShareD3DTexture(UInt32 wyphonPartnerHandle, UInt32 sharedTextureHandle, UInt32 width, UInt32 height, UInt32 format, UInt32 usage, [MarshalAs(UnmanagedType.LPTStr)]string description);
 
 		[DllImport("Wyphon", CallingConvention = CallingConvention.Cdecl)]
-		private static extern bool UnshareD3DTexture(uint wyphonPartnerHandle, uint sharedTextureHandle);
+		private static extern bool UnshareD3DTexture(UInt32 wyphonPartnerHandle, UInt32 sharedTextureHandle);
 
 		[DllImport("Wyphon", CallingConvention = CallingConvention.Cdecl)]
-		private static extern IntPtr GetWyphonPartnerName(uint wyphonPartnerHandle, uint wyphonPartnerId);
+		private static extern IntPtr GetWyphonPartnerName(UInt32 wyphonPartnerHandle, UInt32 wyphonPartnerId);
 
 		[DllImport("Wyphon", CallingConvention = CallingConvention.Cdecl)]
-		private static extern bool GetD3DTextureInfo(uint wyphonPartnerHandle, uint sharedTextureHandle, out uint wyphonPartnerId, out uint width, out uint height, out uint format, out uint usage, ref IntPtr description, int maxDescriptionLength );
+		private static extern bool GetD3DTextureInfo(UInt32 wyphonPartnerHandle, UInt32 sharedTextureHandle, out UInt32 wyphonPartnerId, out UInt32 width, out UInt32 height, out UInt32 format, out UInt32 usage, ref IntPtr description, int maxDescriptionLength );
 
 		[DllImport("Wyphon", CallingConvention = CallingConvention.Cdecl)]
-		private static extern uint GetPartnerId(uint wyphonPartnerHandle);
+		private static extern UInt32 GetPartnerId(UInt32 wyphonPartnerHandle);
 		
 		#endregion Wyphon.dll imports & delegates
+
+
+        private static WyphonPartnerJoinedCallbackDelegate wpjDelegate = WyphonPartnerJoinedCallback;
+        private static WyphonPartnerLeftCallbackDelegate wplDelegate = WyphonPartnerLeftCallback;
+
+
+        private static D3DTextureSharingStartedCallbackDelegate shareDelegate = D3DTextureSharingStartedCallback;
+        private static D3DTextureSharingStoppedCallbackDelegate unshareDelegate = D3DTextureSharingStoppedCallback;
 
 
 		public TestWyphon()
@@ -69,20 +77,31 @@ namespace ShareDataTest.TestClasses
 		
 #region TestWyphon functions
 
-		public unsafe void WyphonPartnerJoinedCallback(uint hLocalMessageBroadcastPartner, uint partnerId, IntPtr partnerNameLPTSTR, IntPtr customData) {
-			
+		public static unsafe void WyphonPartnerJoinedCallback(UInt32 hLocalMessageBroadcastPartner, UInt32 partnerId, IntPtr partnerNameLPTSTR, IntPtr customData) {
+            Console.WriteLine( " >>>>>>>> Partner with id " + partnerId + " JOINED. Its name is " + Marshal.PtrToStringAuto(partnerNameLPTSTR) );			
 		}
 		
-		public unsafe void WyphonPartnerLeftCallback(uint hLocalMessageBroadcastPartner, uint partnerId, IntPtr customData) {
-			
+		public static unsafe void WyphonPartnerLeftCallback(UInt32 hLocalMessageBroadcastPartner, UInt32 partnerId, IntPtr customData) {
+            Console.WriteLine( " >>>>>>>> Partner with id " + partnerId + " LEFT." );
 		}
+
+        public static unsafe void D3DTextureSharingStartedCallback(UInt32 wyphonPartnerHandle, UInt32 sendingPartnerId, UInt32 sharedTextureHandle, UInt32 width, UInt32 height, UInt32 format, UInt32 usage, IntPtr descriptionLPTSTR) {
+            Console.WriteLine(" >>>>>>>> Partner with id " + sendingPartnerId + " STARTED sharing texture " + sharedTextureHandle + " " + width + "x" + height + ":" + format + " " + Marshal.PtrToStringAuto(descriptionLPTSTR) );
+        }
+
+        public static unsafe void D3DTextureSharingStoppedCallback(UInt32 wyphonPartnerHandle, UInt32 sendingPartnerId, UInt32 sharedTextureHandle, UInt32 width, UInt32 height, UInt32 format, UInt32 usage, IntPtr descriptionLPTSTR) {
+            Console.WriteLine(" >>>>>>>> Partner with id " + sendingPartnerId + " STOPPED sharing texture " + sharedTextureHandle + " " + width + "x" + height + ":" + format + " " + Marshal.PtrToStringAuto(descriptionLPTSTR) );
+        }
+
+
 
 		public static void DoTestWyphon() {
 			Console.Write("What's your application name: ");
 			string name = Console.ReadLine();
 			Console.WriteLine("Welcome " + name + ". You share a texture's info by typing s, and unshare by typing u afterwards<enter>");
 
-			uint hWyphonPartner = CreateWyphonPartner( name, IntPtr.Zero, IntPtr.Zero, IntPtr.Zero, IntPtr.Zero, IntPtr.Zero );
+
+            UInt32 hWyphonPartner = CreateWyphonPartner(name, IntPtr.Zero, Marshal.GetFunctionPointerForDelegate(wpjDelegate), Marshal.GetFunctionPointerForDelegate(wplDelegate), Marshal.GetFunctionPointerForDelegate(shareDelegate), Marshal.GetFunctionPointerForDelegate(unshareDelegate) );
 			
 			if ( hWyphonPartner > 0 ) {
 				try {
@@ -91,9 +110,9 @@ namespace ShareDataTest.TestClasses
 						if ( input == 's' ) {
 							Console.Write("Enter description for " + name + "'s shared texture: ");
 							string textureName = Console.ReadLine();
-							uint textureHandle = 0;
-							uint textureWidth = 0;
-							uint textureHeight = 0;
+							UInt32 textureHandle = 0;
+							UInt32 textureWidth = 0;
+							UInt32 textureHeight = 0;
 							do {
 								Console.Write("Enter handle shared texture: ");
 							} while ( ! UInt32.TryParse( Console.ReadLine(), out textureHandle ) );
@@ -107,7 +126,7 @@ namespace ShareDataTest.TestClasses
 							ShareD3DTexture( hWyphonPartner, textureHandle, textureWidth, textureHeight, 20, 999, textureName );
 						}
 						else if ( input == 'u' ) {
-							uint textureHandle = 0;
+							UInt32 textureHandle = 0;
 							do {
 								Console.Write("Enter handle for texture you want to UN-share: ");
 							} while ( ! UInt32.TryParse( Console.ReadLine(), out textureHandle ) );

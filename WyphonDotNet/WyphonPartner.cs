@@ -30,19 +30,19 @@ namespace Wyphon
 		#region Wyphon.dll imports & delegates
 		
 		[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-		private unsafe delegate void WyphonPartnerJoinedCallbackDelegate(uint hLocalMessageBroadcastPartner, uint partnerId, IntPtr partnerNameLPTSTR, IntPtr customData);
+		private unsafe delegate void WyphonPartnerJoinedCallbackDelegate(UInt32 hLocalMessageBroadcastPartner, UInt32 partnerId, IntPtr partnerNameLPTSTR, IntPtr customData);
 
 		[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-		private unsafe delegate void WyphonPartnerLeftCallbackDelegate(uint hLocalMessageBroadcastPartner, uint partnerId, IntPtr customData);
+		private unsafe delegate void WyphonPartnerLeftCallbackDelegate(UInt32 hLocalMessageBroadcastPartner, UInt32 partnerId, IntPtr customData);
 
 		[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-		private unsafe delegate void D3DTextureSharingStartedCallbackDelegate( uint wyphonPartnerHandle, uint sendingPartnerId, uint sharedTextureHandle, uint width, uint height, uint format, uint usage, IntPtr descriptionLPTSTR );
+		private unsafe delegate void D3DTextureSharingStartedCallbackDelegate( UInt32 wyphonPartnerHandle, UInt32 sendingPartnerId, UInt32 sharedTextureHandle, UInt32 width, UInt32 height, UInt32 format, UInt32 usage, IntPtr descriptionLPTSTR );
 
 		[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-		private unsafe delegate void D3DTextureSharingStoppedCallbackDelegate( uint wyphonPartnerHandle, uint sendingPartnerId, uint sharedTextureHandle, uint width, uint height, uint format, uint usage, IntPtr descriptionLPTSTR );
+		private unsafe delegate void D3DTextureSharingStoppedCallbackDelegate( UInt32 wyphonPartnerHandle, UInt32 sendingPartnerId, UInt32 sharedTextureHandle, UInt32 width, UInt32 height, UInt32 format, UInt32 usage, IntPtr descriptionLPTSTR );
 
 		[DllImport("Wyphon", CallingConvention = CallingConvention.Cdecl)]
-		private static extern uint CreateWyphonPartner([MarshalAs(UnmanagedType.LPTStr)]string applicationName,
+		private static extern UInt32 CreateWyphonPartner([MarshalAs(UnmanagedType.LPTStr)]string applicationName,
 														IntPtr pCallbackFuncCustomData,
 														IntPtr pPartnerJoinedCallbackFunc,
 														IntPtr pPartnerLeftCallbackFunc,
@@ -51,27 +51,27 @@ namespace Wyphon
 		                                             );
 
 		[DllImport("Wyphon", CallingConvention = CallingConvention.Cdecl)]
-		private static extern bool DestroyWyphonPartner(uint hWyphonPartner);
+		private static extern bool DestroyWyphonPartner(UInt32 hWyphonPartner);
 		
 		[DllImport("Wyphon", CallingConvention = CallingConvention.Cdecl)]
-		private static extern bool ShareD3DTexture(uint wyphonPartnerHandle, uint sharedTextureHandle, uint width, uint height, uint format, uint usage, [MarshalAs(UnmanagedType.LPTStr)]string description);
+		private static extern bool ShareD3DTexture(UInt32 wyphonPartnerHandle, UInt32 sharedTextureHandle, UInt32 width, UInt32 height, UInt32 format, UInt32 usage, [MarshalAs(UnmanagedType.LPTStr)]string description);
 
 		[DllImport("Wyphon", CallingConvention = CallingConvention.Cdecl)]
-		private static extern bool UnshareD3DTexture(uint wyphonPartnerHandle, uint sharedTextureHandle);
+		private static extern bool UnshareD3DTexture(UInt32 wyphonPartnerHandle, UInt32 sharedTextureHandle);
 
 		[DllImport("Wyphon", CallingConvention = CallingConvention.Cdecl)]
-		private static extern IntPtr GetWyphonPartnerName(uint wyphonPartnerHandle, uint wyphonPartnerId);
+		private static extern IntPtr GetWyphonPartnerName(UInt32 wyphonPartnerHandle, UInt32 wyphonPartnerId);
 
 		[DllImport("Wyphon", CallingConvention = CallingConvention.Cdecl)]
-		private static extern bool GetD3DTextureInfo(uint wyphonPartnerHandle, uint sharedTextureHandle, out uint wyphonPartnerId, out uint width, out uint height, out uint format, out uint usage, ref IntPtr description, int maxDescriptionLength );
+		private static extern bool GetD3DTextureInfo(UInt32 wyphonPartnerHandle, UInt32 sharedTextureHandle, out UInt32 wyphonPartnerId, out UInt32 width, out UInt32 height, out UInt32 format, out UInt32 usage, ref IntPtr description, int maxDescriptionLength );
 
 		[DllImport("Wyphon", CallingConvention = CallingConvention.Cdecl)]
-		private static extern uint GetPartnerId(uint wyphonPartnerHandle);
+		private static extern UInt32 GetPartnerId(UInt32 wyphonPartnerHandle);
 			
 		#endregion Wyphon.dll imports & delegates
 		
 		#region fields
-		uint wyphonPartnerHandle = 0;
+		UInt32 wyphonPartnerHandle = 0;
 		
 		//by storing them as class variables, we make sure the garbage collector doesn't remove these too early
 		private WyphonPartnerJoinedCallbackDelegate wyphonPartnerJoinedCallbackDelegate;
@@ -81,11 +81,11 @@ namespace Wyphon
 		#endregion fields
 		
 		// What the event handlers should look like
-		public delegate void WyphonPartnerJoinedHandler(uint partnerId, string partnerName);
-		public delegate void WyphonPartnerLeftHandler(uint partnerId);
+		public delegate void WyphonPartnerJoinedHandler(UInt32 partnerId, string partnerName);
+		public delegate void WyphonPartnerLeftHandler(UInt32 partnerId);
 
-		public delegate void WyphonPartnerD3DTextureSharedHandler(uint sendingPartnerId, uint sharedTextureHandle, uint width, uint height, uint format, uint usage, string description);
-		public delegate void WyphonPartnerD3DTextureUnsharedHandler(uint sendingPartnerId, uint sharedTextureHandle, uint width, uint height, uint format, uint usage, string description);
+		public delegate void WyphonPartnerD3DTextureSharedHandler(UInt32 sendingPartnerId, UInt32 sharedTextureHandle, UInt32 width, UInt32 height, UInt32 format, UInt32 usage, string description);
+		public delegate void WyphonPartnerD3DTextureUnsharedHandler(UInt32 sendingPartnerId, UInt32 sharedTextureHandle, UInt32 width, UInt32 height, UInt32 format, UInt32 usage, string description);
 		
 		// Public events that one can subscribe to
 		public event WyphonPartnerJoinedHandler WyphonPartnerJoinedEvent;
@@ -117,7 +117,7 @@ namespace Wyphon
 		}
 		
 		
-		public void WyphonPartnerJoinedCallback(uint hLocalMessageBroadcastPartner, uint partnerId, IntPtr partnerNameLPTSTR, IntPtr customData) {
+		public void WyphonPartnerJoinedCallback(UInt32 hLocalMessageBroadcastPartner, UInt32 partnerId, IntPtr partnerNameLPTSTR, IntPtr customData) {
 			//Only if there are any subscribers
 			if (WyphonPartnerJoinedEvent != null) {
 				try {
@@ -130,7 +130,7 @@ namespace Wyphon
 			}
 		}
 
-		public void WyphonPartnerLeftCallback(uint hLocalMessageBroadcastPartner, uint partnerId, IntPtr customData) {
+		public void WyphonPartnerLeftCallback(UInt32 hLocalMessageBroadcastPartner, UInt32 partnerId, IntPtr customData) {
 			//Only if there are any subscribers
 			if (WyphonPartnerLeftEvent != null) {
 				try {
@@ -142,7 +142,7 @@ namespace Wyphon
 			}
 		}
 		
-		public void D3DTextureSharingStartedCallback( uint wyphonPartnerHandle, uint sendingPartnerId, uint sharedTextureHandle, uint width, uint height, uint format, uint usage, IntPtr descriptionLPTSTR ) {
+		public void D3DTextureSharingStartedCallback( UInt32 wyphonPartnerHandle, UInt32 sendingPartnerId, UInt32 sharedTextureHandle, UInt32 width, UInt32 height, UInt32 format, UInt32 usage, IntPtr descriptionLPTSTR ) {
 			//Only if there are any subscribers
 			if (WyphonPartnerD3DTextureSharedEvent != null) {
 				try {
@@ -154,7 +154,7 @@ namespace Wyphon
 			}
 		}
 
-		public void D3DTextureSharingStoppedCallback( uint wyphonPartnerHandle, uint sendingPartnerId, uint sharedTextureHandle, uint width, uint height, uint format, uint usage, IntPtr descriptionLPTSTR ) {
+		public void D3DTextureSharingStoppedCallback( UInt32 wyphonPartnerHandle, UInt32 sendingPartnerId, UInt32 sharedTextureHandle, UInt32 width, UInt32 height, UInt32 format, UInt32 usage, IntPtr descriptionLPTSTR ) {
 			//Only if there are any subscribers
 			if (WyphonPartnerD3DTextureUnsharedEvent != null) {
 				try {
@@ -167,19 +167,19 @@ namespace Wyphon
 			}
 		}
 		
-		public bool ShareD3DTexture(uint sharedTextureHandle, uint width, uint height, uint format, uint usage, string description) {
+		public bool ShareD3DTexture(UInt32 sharedTextureHandle, UInt32 width, UInt32 height, UInt32 format, UInt32 usage, string description) {
 			return ShareD3DTexture(wyphonPartnerHandle, sharedTextureHandle, width, height, format, usage, description);
 		}
 
-		public bool UnshareD3DTexture(uint sharedTextureHandle) {
+		public bool UnshareD3DTexture(UInt32 sharedTextureHandle) {
 			return UnshareD3DTexture(wyphonPartnerHandle, sharedTextureHandle);
 		}
 		
-		public uint PartnerId {
+		public UInt32 PartnerId {
 			get { return GetPartnerId(wyphonPartnerHandle); }
 		}
 		
-		public string GetPartnerName(uint partnerId) {
+		public string GetPartnerName(UInt32 partnerId) {
 			return Marshal.PtrToStringAuto( GetWyphonPartnerName(wyphonPartnerHandle, partnerId) );
 		}
 

@@ -105,7 +105,7 @@ namespace WyphonUtils {
 	/// Usage:	if you need a texture for constantly copying data from main memory to, use D3DUSAGE_DYNAMIC (will be in AGP memory instead of GPU memory)
 	///			if you need a texture te render another 3D scene to, use D3DUSAGE_RENDERTARGET (will be in GPU memory)
 	///
-	HRESULT CreateDX9ExTexture(UINT width, UINT height, DWORD usage, D3DFORMAT format, PDIRECT3DTEXTURE9 * out_pD3D9Texture, HANDLE * out_SharedTextureHandle) {
+	HRESULT CreateDX9ExTexture(unsigned __int32 width, unsigned __int32 height, DWORD usage, D3DFORMAT format, PDIRECT3DTEXTURE9 * out_pD3D9Texture, HANDLE * out_SharedTextureHandle) {
 		if ( g_pDirect3D9Ex_WyphonUtils == NULL || g_pDeviceD3D9ex_WyphonUtils == NULL ) {
 			throw TEXT("Direct3D not properly intialized. Call InitDX9Ex() first (and don't forget to ReleaseDX9Ex() before exiting your application)");
 		}

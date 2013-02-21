@@ -22,29 +22,29 @@ namespace SharedMemory {
 
 	struct SharedMemoryDescriptor {	
 		HANDLE hSemaphore;
-		unsigned int semaphoreLocked;
+		unsigned __int32 semaphoreLocked;
 		HANDLE hSharedMemory;
 		BYTE * data;
 
 		// These are stored in sharedmemory too:
-		//unsigned int sharedMemorySize;
-		//unsigned int highestByteWritten;
+		//unsigned __int32 sharedMemorySize;
+		//unsigned __int32 highestByteWritten;
 	};
 
 	extern "C" _declspec(dllexport)
-	bool LockSharedMemory(HANDLE sharedMemoryHandle, unsigned int timeoutInMilliseconds);
+	bool LockSharedMemory(HANDLE sharedMemoryHandle, unsigned __int32 timeoutInMilliseconds);
 	
 	extern "C" _declspec(dllexport)
 	bool UnlockSharedMemory(HANDLE sharedMemoryHandle);
 	
 	extern "C" _declspec(dllexport)
-	int WriteSharedMemory( HANDLE sharedMemoryHandle, BYTE* data, unsigned int length, unsigned int offset );
+	__int32 WriteSharedMemory( HANDLE sharedMemoryHandle, BYTE* data, unsigned __int32 length, unsigned __int32 offset );
 
 	extern "C" _declspec(dllexport)
-	int ReadSharedMemory( HANDLE sharedMemoryHandle, BYTE * &pData );
+	__int32 ReadSharedMemory( HANDLE sharedMemoryHandle, BYTE * &pData );
 	
 	extern "C" _declspec(dllexport)
-	int WriteStringToSharedMemory( HANDLE sharedMemoryHandle, LPTSTR data );
+	__int32 WriteStringToSharedMemory( HANDLE sharedMemoryHandle, LPTSTR data );
 	
 	extern "C" _declspec(dllexport)
 	LPTSTR ReadStringFromSharedMemory( HANDLE sharedMemoryHandle );
@@ -53,7 +53,7 @@ namespace SharedMemory {
 	bool DestroySharedMemory(HANDLE sharedMemoryHandle);
 	
 	extern "C" _declspec(dllexport)
-	HANDLE CreateSharedMemory(LPTSTR lpName, unsigned int startSize, unsigned int maxSize);
+	HANDLE CreateSharedMemory(LPTSTR lpName, unsigned __int32 startSize, unsigned __int32 maxSize);
 
 //	struct ISharedMemory {
 //		virtual char* TestMethod() = 0;

@@ -27,14 +27,14 @@
 
 ////	Define the Functions in the DLL for reuse. This is just prototyping the dll's function. 
 ////	A mock of it. Use "stdcall" for maximum compatibility.
-//typedef bool (__stdcall * pLockSharedMemoryFUNC)(HANDLE sharedDataHandle, unsigned int timeoutInMilliseconds);
+//typedef bool (__stdcall * pLockSharedMemoryFUNC)(HANDLE sharedDataHandle, unsigned __int32 timeoutInMilliseconds);
 //typedef bool (__stdcall * pUnlockSharedMemoryFUNC)(HANDLE sharedDataHandle);
-//typedef int (__stdcall * pWriteSharedMemoryFUNC)( HANDLE sharedDataHandle, BYTE* data, unsigned int length, unsigned int offset );
-//typedef int (__stdcall * pReadSharedMemoryFUNC)( HANDLE sharedDataHandle, BYTE * &pData );
-//typedef int (__stdcall * pWriteStringToSharedMemoryFUNC)( HANDLE sharedDataHandle, LPTSTR data );
+//typedef __int32 (__stdcall * pWriteSharedMemoryFUNC)( HANDLE sharedDataHandle, BYTE* data, unsigned __int32 length, unsigned __int32 offset );
+//typedef __int32 (__stdcall * pReadSharedMemoryFUNC)( HANDLE sharedDataHandle, BYTE * &pData );
+//typedef __int32 (__stdcall * pWriteStringToSharedMemoryFUNC)( HANDLE sharedDataHandle, LPTSTR data );
 //typedef LPTSTR (__stdcall * pReadStringFromSharedMemoryFUNC)( HANDLE sharedDataHandle );
 //typedef bool (__stdcall * pDestroySharedMemoryFUNC)(HANDLE sharedDataHandle);
-//typedef HANDLE (__stdcall * pCreateSharedMemoryFUNC)(LPTSTR lpName, unsigned int startSize, unsigned int maxSize);
+//typedef HANDLE (__stdcall * pCreateSharedMemoryFUNC)(LPTSTR lpName, unsigned __int32 startSize, unsigned __int32 maxSize);
 //
 //
 //HINSTANCE hSharedMemoryDll = LoadLibrary(TEXT("SharedMemory.dll"));
@@ -42,14 +42,14 @@
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //// get pointers to these functions in the dll
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
-////	bool LockSharedMemory(HANDLE sharedDataHandle, unsigned int timeoutInMilliseconds)
+////	bool LockSharedMemory(HANDLE sharedDataHandle, unsigned __int32 timeoutInMilliseconds)
 ////	bool UnlockSharedMemory(HANDLE sharedDataHandle)
-////	int WriteSharedMemory( HANDLE sharedDataHandle, BYTE* data, unsigned int length, unsigned int offset )
-////	int ReadSharedMemory( HANDLE sharedDataHandle, BYTE * &pData )
-////	int WriteStringToSharedMemory( HANDLE sharedDataHandle, LPTSTR data )
+////	__int32 WriteSharedMemory( HANDLE sharedDataHandle, BYTE* data, unsigned __int32 length, unsigned __int32 offset )
+////	__int32 ReadSharedMemory( HANDLE sharedDataHandle, BYTE * &pData )
+////	__int32 WriteStringToSharedMemory( HANDLE sharedDataHandle, LPTSTR data )
 ////	LPTSTR ReadStringFromSharedMemory( HANDLE sharedDataHandle )
 ////	bool DestroySharedMemory(HANDLE sharedDataHandle)
-////	HANDLE CreateSharedMemory(LPTSTR lpName, unsigned int startSize, unsigned int maxSize)
+////	HANDLE CreateSharedMemory(LPTSTR lpName, unsigned __int32 startSize, unsigned __int32 maxSize)
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 ////if ( hSharedMemoryDll != NULL ) {
@@ -97,9 +97,9 @@
 	
 	A message will have 1 byte telling us the message_type
 	and some other bytes depending on that type, with needed info:
-	- HELLO (1)		|	myId (sizeof unsigned int)	|	name_length (size_t) 	|	name
-	- WELCOME (1)	|	myId (sizeof unsigned int)	|	name_length (size_t) 	|	name
-	- MESSAGE (1) 	|	myId		|	msg_length (sizeof unsigned int)		|	msg bytes
+	- HELLO (1)		|	myId (sizeof unsigned __int32)	|	name_length (unsigned __int32) 	|	name
+	- WELCOME (1)	|	myId (sizeof unsigned __int32)	|	name_length (unsigned __int32) 	|	name
+	- MESSAGE (1) 	|	myId		|	msg_length (sizeof unsigned __int32)		|	msg bytes
 	- GOODBYE		|	myId
 	
 )
@@ -137,16 +137,16 @@ namespace LocalMessageBroadcast {
 		
 		wstring * myName;
 
-		unsigned int myId; //used to generate out mailsot name, and shared with the other partners
+		unsigned __int32 myId; //used to generate out mailsot name, and shared with the other partners
 		
 		HANDLE hReaderMailslot; //handle to the mailslot we are listening on
 
 		bool listenerThreadRunning;
 
-		map<unsigned int, HANDLE> * writerMailslotHandlesMap;	//unsigned int = the partner's myId
+		map<unsigned __int32, HANDLE> * writerMailslotHandlesMap;	//unsigned __int32 = the partner's myId
 																//HANDLE = the handles to the mailslots we should write to
 
-		map<unsigned int, wstring> * partnerNamesMap;	//unsigned int = the partner's myId
+		map<unsigned __int32, wstring> * partnerNamesMap;	//unsigned __int32 = the partner's myId
 														//wstring = name of the partner
 
 
@@ -157,7 +157,7 @@ namespace LocalMessageBroadcast {
 		void * callbackFuncCustomData;	//will be sent with Callback functions, and can contain data specific to the user
 
 		//for receiving messages
-		int currentReadBufferSize;
+		__int32 currentReadBufferSize;
 		BYTE * readBuffer;
 	};
 
@@ -171,7 +171,7 @@ namespace LocalMessageBroadcast {
 
 	/// since we will only send unsigned integers around, the mailslot name 
 	/// will be constructed from a string and the decimal representation of this number...
-	wstring CreateMailslotName(wstring baseName, unsigned int identifier) {
+	wstring CreateMailslotName(wstring baseName, unsigned __int32 identifier) {
 		//wstring retVal;
 		
 		wstringstream ss;
@@ -185,13 +185,13 @@ namespace LocalMessageBroadcast {
 
 	///in the list of ids (from shared memory) find an 'untaken' id that we can use, and find an empty spot 
 	///to write it back to shared memory afterwards
-	bool FindMailslotIdAndEmptySharedMemorySpot(unsigned int * ids, int nrOfIds, int & emptySpotPosition, unsigned int & newReaderMailslotIdentifier) {
+	bool FindMailslotIdAndEmptySharedMemorySpot(unsigned __int32 * ids, __int32 nrOfIds, __int32 & emptySpotPosition, unsigned __int32 & newReaderMailslotIdentifier) {
 		
 		//find an empty spot (=0), if there is one
-		int pos = -1;
-		unsigned int maxId = 0; //our id should be the max + 1 from the already existing identifiers
+		__int32 pos = -1;
+		unsigned __int32 maxId = 0; //our id should be the max + 1 from the already existing identifiers
 
-		for ( int i = 0; i < nrOfIds; i++ ) {
+		for ( __int32 i = 0; i < nrOfIds; i++ ) {
 			if ( ids[i] == 0 && pos == -1) {
 				pos = i;
 			}
@@ -216,10 +216,10 @@ namespace LocalMessageBroadcast {
 	}
 
 	/// Closes and removes 1 single file handle for writing to partner mailslots
-	bool DestroyWriterMailslot(LocalMessageBroadcastPartnerDescriptor * pLocalMessageBroadcastPartner, unsigned int myId) {
+	bool DestroyWriterMailslot(LocalMessageBroadcastPartnerDescriptor * pLocalMessageBroadcastPartner, unsigned __int32 myId) {
 		
-		map<unsigned int, HANDLE> * handlesMap = pLocalMessageBroadcastPartner->writerMailslotHandlesMap;
-		map<unsigned int, wstring> * namesMap = pLocalMessageBroadcastPartner->partnerNamesMap;
+		map<unsigned __int32, HANDLE> * handlesMap = pLocalMessageBroadcastPartner->writerMailslotHandlesMap;
+		map<unsigned __int32, wstring> * namesMap = pLocalMessageBroadcastPartner->partnerNamesMap;
 	
 		CloseHandle( (*handlesMap)[myId] );
 		
@@ -234,7 +234,7 @@ namespace LocalMessageBroadcast {
 	/// Closes and removes file handles for writing to the partner mailslots
 	bool DestroyWriterMailslots(LocalMessageBroadcastPartnerDescriptor * pLocalMessageBroadcastPartner) {
 		
-		map<unsigned int, HANDLE>::const_iterator itr;
+		map<unsigned __int32, HANDLE>::const_iterator itr;
 		
 		for( itr = pLocalMessageBroadcastPartner->writerMailslotHandlesMap->begin(); itr != pLocalMessageBroadcastPartner->writerMailslotHandlesMap->end(); ++itr ) {
 			//wcout << "writerMailslotId: " << (*itr).first << " Handle: " << (*itr).second;
@@ -260,7 +260,7 @@ namespace LocalMessageBroadcast {
 
 
 	///Create 1 single writermailslot, and put it into the list of known partners
-	bool CreateWriterMailslot(LocalMessageBroadcastPartnerDescriptor * pLocalMessageBroadcastPartner, unsigned int id) {
+	bool CreateWriterMailslot(LocalMessageBroadcastPartnerDescriptor * pLocalMessageBroadcastPartner, unsigned __int32 id) {
 
 		wstring name = CreateMailslotName(*(pLocalMessageBroadcastPartner->sharedMemoryName), id);
 
@@ -293,12 +293,12 @@ namespace LocalMessageBroadcast {
 
 
 	/// Creates file handles for writing to all of the partner mailslots
-	bool CreateWriterMailslots(LocalMessageBroadcastPartnerDescriptor * pLocalMessageBroadcastPartner, unsigned int * ids, int nrOfIds) {
+	bool CreateWriterMailslots(LocalMessageBroadcastPartnerDescriptor * pLocalMessageBroadcastPartner, unsigned __int32 * ids, __int32 nrOfIds) {
 	
 		bool success = true;
 	
-		for ( int i = 0; i < nrOfIds; i++ ) {
-			unsigned int id = ids[i];
+		for ( __int32 i = 0; i < nrOfIds; i++ ) {
+			unsigned __int32 id = ids[i];
 			
 			//wcout << "Current mailslot id = " << id << " ";
 			
@@ -350,7 +350,7 @@ namespace LocalMessageBroadcast {
 	}
 
 
-	bool WriteToSingleMailslot(LocalMessageBroadcastPartnerDescriptor * pLocalMessageBroadcastPartner, unsigned int partnerId, BYTE * data, int len) {
+	bool WriteToSingleMailslot(LocalMessageBroadcastPartnerDescriptor * pLocalMessageBroadcastPartner, unsigned __int32 partnerId, BYTE * data, __int32 len) {
 		
 		bool success = true;
 
@@ -380,7 +380,7 @@ namespace LocalMessageBroadcast {
 	}
 
 
-	bool WriteToAllMailslots(LocalMessageBroadcastPartnerDescriptor * pLocalMessageBroadcastPartner, BYTE * data, int len) {
+	bool WriteToAllMailslots(LocalMessageBroadcastPartnerDescriptor * pLocalMessageBroadcastPartner, BYTE * data, __int32 len) {
 		
 		bool success = true;
 
@@ -388,7 +388,7 @@ namespace LocalMessageBroadcast {
 //	    wcout << pLocalMessageBroadcastPartner->writerMailslotHandlesMap->size() << "\n";
 
 		if ( pLocalMessageBroadcastPartner->writerMailslotHandlesMap->size() > 0 ) {
-			map<unsigned int, HANDLE>::iterator itr;
+			map<unsigned __int32, HANDLE>::iterator itr;
 			
 //		    wcout << "Found " << pLocalMessageBroadcastPartner->writerMailslotHandlesMap->size() << " partners, so get an iterator and try to send the message to all of them." << "\n";
 			
@@ -422,7 +422,7 @@ namespace LocalMessageBroadcast {
 //					}
 				}
 				else {
-					wcout << "Don't try to write to our own " << itr->first << " mailsot aka " << itr->second << "\n";
+					//wcout << "Don't try to write to our own " << itr->first << " mailsot aka " << itr->second << "\n";
 				}
 			}
 		}
@@ -435,19 +435,19 @@ namespace LocalMessageBroadcast {
 
 
 	/// data should be deleted afterwards by the caller !!!
-	/// BYTE msgType ; HANDLE partnerId ; size_t appnamelength ; wchar_t * myName
-	int CreateHelloMessage(LocalMessageBroadcastPartnerDescriptor * pLocalMessageBroadcastPartner, BYTE ** data ) {
+	/// BYTE msgType ; HANDLE partnerId ; unsigned __int32 appnamelength ; wchar_t * myName
+	__int32 CreateHelloMessage(LocalMessageBroadcastPartnerDescriptor * pLocalMessageBroadcastPartner, BYTE ** data ) {
 
-		int dataSize = 1 + sizeof(pLocalMessageBroadcastPartner->myId) + sizeof(size_t) + pLocalMessageBroadcastPartner->myName->length() * sizeof(wchar_t);
+		__int32 dataSize = 1 + sizeof(pLocalMessageBroadcastPartner->myId) + sizeof(unsigned __int32) + pLocalMessageBroadcastPartner->myName->length() * sizeof(wchar_t);
 		(*data) = new BYTE[dataSize];
 		(*data)[0] = LOCAL_MSG_BROADCAST_HELLO;
 
 		BYTE * addr = (*data) + 1;
-		int len = sizeof(pLocalMessageBroadcastPartner->myId);
+		__int32 len = sizeof(pLocalMessageBroadcastPartner->myId);
 		CopyMemory( addr, (VOID *) &pLocalMessageBroadcastPartner->myId, len );
 		addr += len;
-		len = sizeof(size_t);
-		size_t strlen = pLocalMessageBroadcastPartner->myName->length();
+		len = sizeof(unsigned __int32);
+		unsigned __int32 strlen = pLocalMessageBroadcastPartner->myName->length();
 		CopyMemory( addr, (VOID *) &strlen, len );
 		addr += len;
 		len = pLocalMessageBroadcastPartner->myName->length() * sizeof(wchar_t);
@@ -463,10 +463,10 @@ namespace LocalMessageBroadcast {
 	}
 
 	/// data should be deleted afterwards by the caller !!!
-	/// BYTE msgType ; HANDLE partnerId ; size_t appnamelength ; wchar_t * myName
-	int CreateStopListeningMessage(LocalMessageBroadcastPartnerDescriptor * pLocalMessageBroadcastPartner, BYTE ** data ) {
+	/// BYTE msgType ; HANDLE partnerId ; unsigned __int32 appnamelength ; wchar_t * myName
+	__int32 CreateStopListeningMessage(LocalMessageBroadcastPartnerDescriptor * pLocalMessageBroadcastPartner, BYTE ** data ) {
 
-		int dataSize = 1;
+		__int32 dataSize = 1;
 		(*data) = new BYTE[dataSize];
 		(*data)[0] = LOCAL_MSG_BROADCAST_STOPLISTENING;
 		
@@ -476,14 +476,14 @@ namespace LocalMessageBroadcast {
 
 	/// data should be deleted afterwards by the caller !!!
 	/// BYTE msgType ; HANDLE partnerId
-	int CreateGoodbyeMessage(LocalMessageBroadcastPartnerDescriptor * pLocalMessageBroadcastPartner, BYTE ** data ) {
+	__int32 CreateGoodbyeMessage(LocalMessageBroadcastPartnerDescriptor * pLocalMessageBroadcastPartner, BYTE ** data ) {
 
-		int dataSize = 1 + sizeof(pLocalMessageBroadcastPartner->myId);
+		__int32 dataSize = 1 + sizeof(pLocalMessageBroadcastPartner->myId);
 		(*data) = new BYTE[dataSize];
 		(*data)[0] = LOCAL_MSG_BROADCAST_GOODBYE;
 
 		BYTE * addr = (*data) + 1;
-		int len = sizeof(pLocalMessageBroadcastPartner->myId);
+		__int32 len = sizeof(pLocalMessageBroadcastPartner->myId);
 		CopyMemory( addr, (VOID *) &pLocalMessageBroadcastPartner->myId, len );
 		addr += len;
 		
@@ -493,8 +493,8 @@ namespace LocalMessageBroadcast {
 
 	/// data should be deleted afterwards by the caller !!!
 	/// BYTE msgType ; HANDLE partnerId ; SharedObjectInfo
-	int CreateMessage( LocalMessageBroadcastPartnerDescriptor * pLocalMessageBroadcastPartner, void * pObject, unsigned int objectSize, BYTE ** data ) {
-		int dataSize = 1 + sizeof(pLocalMessageBroadcastPartner->myId) + sizeof(objectSize) + objectSize;
+	__int32 CreateMessage( LocalMessageBroadcastPartnerDescriptor * pLocalMessageBroadcastPartner, void * pObject, unsigned __int32 objectSize, BYTE ** data ) {
+		__int32 dataSize = 1 + sizeof(pLocalMessageBroadcastPartner->myId) + sizeof(objectSize) + objectSize;
 		
 		//if ( dataSize > maxMsgSize ) {
 		//	throw "Max message size is " + maxMsgSize + "and the message you want to send would have a size of " + dataSize + " bytes.";
@@ -504,7 +504,7 @@ namespace LocalMessageBroadcast {
 		(*data)[0] = LOCAL_MSG_BROADCAST_MESSAGE;
 		
 		BYTE * addr = (*data) + 1;
-		int len = sizeof(pLocalMessageBroadcastPartner->myId);
+		__int32 len = sizeof(pLocalMessageBroadcastPartner->myId);
 		CopyMemory( addr, (VOID *) &pLocalMessageBroadcastPartner->myId, len );
 
 		addr += len;
@@ -524,18 +524,18 @@ namespace LocalMessageBroadcast {
 
 	/// Add this partner to the list of known partners
 	/// Then send him a hello message (so he knows our name) and send him all of the stuff we are sharing
-	bool ProcessReceivedHelloMessage( LocalMessageBroadcastPartnerDescriptor * pLocalMessageBroadcastPartner, BYTE * data, int length ) {
+	bool ProcessReceivedHelloMessage( LocalMessageBroadcastPartnerDescriptor * pLocalMessageBroadcastPartner, BYTE * data, __int32 length ) {
 		bool success = true;
 
 		//parse the message
 		///////////////////
 		BYTE * pData = data + 1;
-		unsigned int partnerId = *((unsigned int *)pData);
+		unsigned __int32 partnerId = *((unsigned __int32 *)pData);
 		
 		pData += sizeof(partnerId);
-		size_t name_length = *((size_t *)pData);
+		unsigned __int32 name_length = *((unsigned __int32 *)pData);
 		
-		pData += sizeof(size_t);
+		pData += sizeof(unsigned __int32);
 		wchar_t * name = (wchar_t*)pData;
 
 		//wcout << "The new message partnerId = " << partnerId << " and name has length " << name_length << "\n";
@@ -553,7 +553,7 @@ namespace LocalMessageBroadcast {
 			success = false;
 		}
 		
-		map<unsigned int, wstring> * namesMap = pLocalMessageBroadcastPartner->partnerNamesMap;
+		map<unsigned __int32, wstring> * namesMap = pLocalMessageBroadcastPartner->partnerNamesMap;
 
 		//(*handlesMap)[partnerId]
 		((*namesMap)[partnerId]).clear(); //clear the current name for the mailslot string
@@ -566,11 +566,11 @@ namespace LocalMessageBroadcast {
 		///////////////////////////////////////////////////////////////////
 		
 		// (a welcome message is just a hello message with a different msgType)
-		map<unsigned int, HANDLE> * handlesMap = pLocalMessageBroadcastPartner->writerMailslotHandlesMap;
+		map<unsigned __int32, HANDLE> * handlesMap = pLocalMessageBroadcastPartner->writerMailslotHandlesMap;
 		HANDLE hPartnerMailslot = (*handlesMap)[partnerId];
 
 		BYTE * welcomeMsgData;
-		int welcomeMsgDataSize = CreateHelloMessage(pLocalMessageBroadcastPartner, &welcomeMsgData);
+		__int32 welcomeMsgDataSize = CreateHelloMessage(pLocalMessageBroadcastPartner, &welcomeMsgData);
 		welcomeMsgData[0] = LOCAL_MSG_BROADCAST_WELCOME;
 		
 
@@ -597,18 +597,18 @@ namespace LocalMessageBroadcast {
 	}
 
 	/// Add this partner to the list of known partners
-	bool ProcessReceivedWelcomeMessage( LocalMessageBroadcastPartnerDescriptor * pLocalMessageBroadcastPartner, BYTE * data, int length ) {
+	bool ProcessReceivedWelcomeMessage( LocalMessageBroadcastPartnerDescriptor * pLocalMessageBroadcastPartner, BYTE * data, __int32 length ) {
 		bool success = true;
 
 		//parse the message
 		///////////////////
 		BYTE * pData = data + 1;
-		unsigned int partnerId = *((unsigned int *)pData);
+		unsigned __int32 partnerId = *((unsigned __int32 *)pData);
 		
 		pData += sizeof(partnerId);
-		size_t name_length = *((size_t *)pData);
+		unsigned __int32 name_length = *((unsigned __int32 *)pData);
 		
-		pData += sizeof(size_t);
+		pData += sizeof(unsigned __int32);
 		wchar_t * name = (wchar_t*)pData;
 
 		//wcout << "The new message partnerId = " << partnerId << " and name has length " << name_length << "\n";
@@ -620,7 +620,7 @@ namespace LocalMessageBroadcast {
 
 		// Add to the list of known partners: update the writerMailslotsMap
 		///////////////////////////////////////////////////////////////////
-		map<unsigned int, wstring> * namesMap = pLocalMessageBroadcastPartner->partnerNamesMap;
+		map<unsigned __int32, wstring> * namesMap = pLocalMessageBroadcastPartner->partnerNamesMap;
 
 		//find and open the mailslot and store its handle
 		if ( ! CreateWriterMailslot( pLocalMessageBroadcastPartner, partnerId ) ) {
@@ -645,13 +645,13 @@ namespace LocalMessageBroadcast {
 
 
 	/// Remove this partner from the list of known partners and stop listening, also remove all of his shared resources
-	bool ProcessReceivedGoodbyeMessage( LocalMessageBroadcastPartnerDescriptor * pLocalMessageBroadcastPartner, BYTE * data, int length ) {
+	bool ProcessReceivedGoodbyeMessage( LocalMessageBroadcastPartnerDescriptor * pLocalMessageBroadcastPartner, BYTE * data, __int32 length ) {
 		bool success = true;
 
 		//parse the message
 		///////////////////
 		BYTE * pData = data + 1;
-		unsigned int partnerId = *((unsigned int *)pData);
+		unsigned __int32 partnerId = *((unsigned __int32 *)pData);
 		
 		
 		//call the callback function
@@ -672,23 +672,23 @@ namespace LocalMessageBroadcast {
 
 
 	/// Add this object to the list of 'shared-by-partners' objects
-	bool ProcessReceivedMessage(LocalMessageBroadcastPartnerDescriptor * pLocalMessageBroadcastPartner, BYTE * data, unsigned int length ) {
+	bool ProcessReceivedMessage(LocalMessageBroadcastPartnerDescriptor * pLocalMessageBroadcastPartner, BYTE * data, unsigned __int32 length ) {
 
 		//wcout << "ProcessReceivedShareObjectMessage received a message of size " << length << "\n";
 
 		//parse the message
 		///////////////////
 		BYTE * pData = data + 1;
-		int len = sizeof(unsigned int);
-		unsigned int partnerId = *((unsigned int *)pData);
+		__int32 len = sizeof(unsigned __int32);
+		unsigned __int32 partnerId = *((unsigned __int32 *)pData);
 		
 		pData += len;
-		len = sizeof(unsigned int);
-		unsigned int msgLength;
+		len = sizeof(unsigned __int32);
+		unsigned __int32 msgLength;
 		CopyMemory(&msgLength, (VOID *) pData, len );
 
 		pData += len;
-		len = (int)msgLength;
+		len = (__int32)msgLength;
 		void * pMsgData = (void*) new BYTE[len];
 		CopyMemory(pMsgData, (void *) pData, len );
 
@@ -753,7 +753,7 @@ namespace LocalMessageBroadcast {
 				if ( pLocalMessageBroadcastPartner->currentReadBufferSize < nextSize ) {
 					//allocate new, larger buffer
 					delete(pLocalMessageBroadcastPartner->readBuffer);
-					int newReadBufferSize = nextSize + 1024;
+					__int32 newReadBufferSize = nextSize + 1024;
 					pLocalMessageBroadcastPartner->readBuffer = new BYTE[newReadBufferSize];
 					pLocalMessageBroadcastPartner->currentReadBufferSize = newReadBufferSize;
 				}
@@ -761,7 +761,7 @@ namespace LocalMessageBroadcast {
 				BYTE * buffer = pLocalMessageBroadcastPartner->readBuffer;
 
 				//WE NEED TO KNOW THE CORRECT MESSAGE SIZE = nextSize for each message
-				//for ( int i = 0; i < messageCount; i++ ) {
+				//for ( __int32 i = 0; i < messageCount; i++ ) {
 				do {
 					if ( ReadFile( pLocalMessageBroadcastPartner->hReaderMailslot, buffer, nextSize, &nrOfBytesRead, NULL) ) {
 						//parse message and do the appropriate callback
@@ -821,7 +821,7 @@ namespace LocalMessageBroadcast {
 		//Send a STOP message to our own mailslot, so it stops listening for new messages
 		/////////////////////////////////////////////////////////////////////////////////
 		BYTE * data;
-		int dataSize = CreateStopListeningMessage(pLocalMessageBroadcastPartner, &data);
+		__int32 dataSize = CreateStopListeningMessage(pLocalMessageBroadcastPartner, &data);
 
 		HANDLE hFile = (*pLocalMessageBroadcastPartner->writerMailslotHandlesMap)[pLocalMessageBroadcastPartner->myId];
 		BOOL fResult;
@@ -830,7 +830,7 @@ namespace LocalMessageBroadcast {
 
 		if (fResult) {
 			//STOP essage sent, so Wait until listenerThread is done
-			int slept = 0;
+			__int32 slept = 0;
 			while ( pLocalMessageBroadcastPartner->listenerThreadRunning && slept <= READERMAILSLOT_TIMEOUT ) {
 				Sleep(1);
 			}
@@ -864,13 +864,13 @@ namespace LocalMessageBroadcast {
 //			wcout << "Trying to read shared memory" << "\n";
 			
 			BYTE * idBytes = NULL;
-			int nrOfIds = ReadSharedMemory( pLocalMessageBroadcastPartner->hSharedMemory, idBytes ) / sizeof(unsigned int);
-			unsigned int * ids = (unsigned int *)idBytes;
+			__int32 nrOfIds = ReadSharedMemory( pLocalMessageBroadcastPartner->hSharedMemory, idBytes ) / sizeof(unsigned __int32);
+			unsigned __int32 * ids = (unsigned __int32 *)idBytes;
 
 			//find ourself in shareddata
-			int ourPosition = -1;
+			__int32 ourPosition = -1;
 
-			for ( int i = 0; i < nrOfIds; i++ ) {
+			for ( __int32 i = 0; i < nrOfIds; i++ ) {
 				if ( ids[i] == pLocalMessageBroadcastPartner->myId ) {
 					ourPosition = i;
 				}
@@ -881,12 +881,12 @@ namespace LocalMessageBroadcast {
 
 //			wcout << "Trying to write to shared memory at position " << ourPosition << "\n";
 
-			unsigned int zero = 0;
+			unsigned __int32 zero = 0;
 			//Remove yourself from the list
 			WriteSharedMemory( 	pLocalMessageBroadcastPartner->hSharedMemory, 
 								(BYTE*) &zero,						//data
-								sizeof(unsigned int),				//length
-								ourPosition * sizeof(unsigned int)	//offset								
+								sizeof(unsigned __int32),				//length
+								ourPosition * sizeof(unsigned __int32)	//offset								
 							);
 			
 
@@ -917,7 +917,7 @@ namespace LocalMessageBroadcast {
 
 		//HANDLE hSharedMemory;
 		//wstring * myName;
-		//unsigned int myId;
+		//unsigned __int32 myId;
 		//HANDLE hReaderMailslot;
 		//map<HANDLE, wstring> writerMailslotsMap;
 
@@ -950,7 +950,7 @@ namespace LocalMessageBroadcast {
 
 		//wcout << "Try to CreateLocalMessageBroadcast with " << pLocalMessageBroadcastPartner->sharedMemoryName << "\n";
 
-		pLocalMessageBroadcastPartner->hSharedMemory = CreateSharedMemory( lpSharedMemoryName, LOCAL_MSG_BROADCAST_INITIAL_NUMBER_OF_PARTNERS * sizeof(unsigned int), LOCAL_MSG_BROADCAST_MAX_NUMBER_OF_PARTNERS * sizeof(unsigned int) );
+		pLocalMessageBroadcastPartner->hSharedMemory = CreateSharedMemory( lpSharedMemoryName, LOCAL_MSG_BROADCAST_INITIAL_NUMBER_OF_PARTNERS * sizeof(unsigned __int32), LOCAL_MSG_BROADCAST_MAX_NUMBER_OF_PARTNERS * sizeof(unsigned __int32) );
 		//THIS was actually overwriting LOCAL variables when called from Wyphon.cpp to 3 and 7:   pLocalMessageBroadcastPartner->hSharedMemory = CreateSharedMemory( lpSharedMemoryName, 3, 7 );
 		if ( pLocalMessageBroadcastPartner->hSharedMemory == NULL ) {
 			throw "[LocalMessageBroadcast] CreateSharedMemory failed.";
@@ -966,8 +966,8 @@ namespace LocalMessageBroadcast {
 
 //		wcout << "Application Name = " << myName << " or in *(pLocalMessageBroadcastPartner->myName) = " << *(pLocalMessageBroadcastPartner->myName) << "\n";
 		
-		pLocalMessageBroadcastPartner->writerMailslotHandlesMap = new map<unsigned int, HANDLE>();
-		pLocalMessageBroadcastPartner->partnerNamesMap = new map<unsigned int, wstring>();
+		pLocalMessageBroadcastPartner->writerMailslotHandlesMap = new map<unsigned __int32, HANDLE>();
+		pLocalMessageBroadcastPartner->partnerNamesMap = new map<unsigned __int32, wstring>();
 
 //		wcout << "Created new writerMailslotHandlesMap with size " << pLocalMessageBroadcastPartner->writerMailslotHandlesMap->size() << "\n";
 		
@@ -990,8 +990,8 @@ namespace LocalMessageBroadcast {
 		if ( pLocalMessageBroadcastPartner->hSharedMemory != NULL && LockSharedMemory( pLocalMessageBroadcastPartner->hSharedMemory, 1000 ) ) {
 			
 			BYTE * idBytes = NULL;
-			int nrOfIds = ReadSharedMemory( pLocalMessageBroadcastPartner->hSharedMemory, idBytes ) / sizeof(unsigned int);
-			unsigned int * ids = (unsigned int *)idBytes;			
+			__int32 nrOfIds = ReadSharedMemory( pLocalMessageBroadcastPartner->hSharedMemory, idBytes ) / sizeof(unsigned __int32);
+			unsigned __int32 * ids = (unsigned __int32 *)idBytes;			
 
 			wcout << "I found " << nrOfIds << " ids in shared data..." << "\n";
 
@@ -1008,12 +1008,12 @@ namespace LocalMessageBroadcast {
 				//FOR A REASON I DON'T UNDERSTAND, looping twice over the ids crashes later on (when debugging)...
 				// So read the shared memory again...
 //				delete idBytes;
-//				nrOfIds = ReadLocalMessageBroadcast( pLocalMessageBroadcastPartner->hSharedMemory, idBytes ) / sizeof(unsigned int);
-//				ids = (unsigned int *)idBytes;
+//				nrOfIds = ReadLocalMessageBroadcast( pLocalMessageBroadcastPartner->hSharedMemory, idBytes ) / sizeof(unsigned __int32);
+//				ids = (unsigned __int32 *)idBytes;
 
 				
-				int emptySpotPosition = -1;
-				unsigned int newReaderMailslotIdentifier = 0;
+				__int32 emptySpotPosition = -1;
+				unsigned __int32 newReaderMailslotIdentifier = 0;
 				if ( FindMailslotIdAndEmptySharedMemorySpot(ids, nrOfIds, emptySpotPosition, newReaderMailslotIdentifier) ) {
 //					wcout << "Found an empty spot in shared memory at position " << emptySpotPosition << " and the first unused ID = " << newReaderMailslotIdentifier << "\n";
 					
@@ -1029,14 +1029,14 @@ namespace LocalMessageBroadcast {
 							//Add yourself to the list (at the first empty spot) !!!
 							WriteSharedMemory( 	pLocalMessageBroadcastPartner->hSharedMemory, 
 												(BYTE*) &newReaderMailslotIdentifier,		//data
-												sizeof(unsigned int),						//length
-												emptySpotPosition * sizeof(unsigned int)	//offset
+												sizeof(unsigned __int32),						//length
+												emptySpotPosition * sizeof(unsigned __int32)	//offset
 											);
 	
 							//DEBUG
 	/*						delete idBytes;
-							nrOfIds = ReadLocalMessageBroadcast( pLocalMessageBroadcastPartner->hSharedMemory, idBytes ) / sizeof(unsigned int);
-							ids = (unsigned int *)idBytes;
+							nrOfIds = ReadLocalMessageBroadcast( pLocalMessageBroadcastPartner->hSharedMemory, idBytes ) / sizeof(unsigned __int32);
+							ids = (unsigned __int32 *)idBytes;
 							emptySpotPosition = -1;
 							newReaderMailslotIdentifier = 0;
 							if ( FindMailslotIdAndEmptySharedMemorySpot(ids, nrOfIds, emptySpotPosition, newReaderMailslotIdentifier) ) {
@@ -1069,7 +1069,7 @@ namespace LocalMessageBroadcast {
 //			wcout << "Now try to create a 'hello' message" << "\n";
 			//Write a 'hello' message to all writermailslots
 			BYTE * data;
-			int dataSize = CreateHelloMessage(pLocalMessageBroadcastPartner, &data);
+			__int32 dataSize = CreateHelloMessage(pLocalMessageBroadcastPartner, &data);
 
 //						wcout << "'hello' message created, try to send it to all partners by writing it to their mailslots..." << "\n";
 
@@ -1096,13 +1096,13 @@ namespace LocalMessageBroadcast {
 	}
 
 	extern "C" _declspec(dllexport)
-	bool SendMessageToSinglePartner(HANDLE localMessageBroadcastPartnerHandle, unsigned int partnerId, void * data, unsigned int length) {
+	bool SendMessageToSinglePartner(HANDLE localMessageBroadcastPartnerHandle, unsigned __int32 partnerId, void * data, unsigned __int32 length) {
 		LocalMessageBroadcastPartnerDescriptor * pLocalMessageBroadcastPartner = (LocalMessageBroadcastPartnerDescriptor *) localMessageBroadcastPartnerHandle;
 
 //		wcout << "Trying to CreateMessage " << pLocalMessageBroadcastPartner << " of length " << length << "\n";
 
 		BYTE * msgData;
-		int msgDataSize = CreateMessage(pLocalMessageBroadcastPartner, data, length, &msgData);
+		__int32 msgDataSize = CreateMessage(pLocalMessageBroadcastPartner, data, length, &msgData);
 		
 		bool success = msgDataSize > 0;
 
@@ -1119,13 +1119,13 @@ namespace LocalMessageBroadcast {
 	}
 	
 	extern "C" _declspec(dllexport)
-	bool BroadcastMessage(HANDLE localMessageBroadcastPartnerHandle, void * data, unsigned int length) {
+	bool BroadcastMessage(HANDLE localMessageBroadcastPartnerHandle, void * data, unsigned __int32 length) {
 		LocalMessageBroadcastPartnerDescriptor * pLocalMessageBroadcastPartner = (LocalMessageBroadcastPartnerDescriptor *) localMessageBroadcastPartnerHandle;
 
 //		wcout << "Trying to CreateMessage " << pLocalMessageBroadcastPartner << " of length " << length << "\n";
 
 		BYTE * msgData;
-		int msgDataSize = CreateMessage(pLocalMessageBroadcastPartner, data, length, &msgData);
+		__int32 msgDataSize = CreateMessage(pLocalMessageBroadcastPartner, data, length, &msgData);
 		
 		bool success = msgDataSize > 0;
 
@@ -1142,7 +1142,7 @@ namespace LocalMessageBroadcast {
 	}
 
 //	extern "C" _declspec(dllexport)
-//	void GetBroadcastPartnerName(HANDLE localMessageBroadcastPartnerHandle, unsigned int partnerId, LPTSTR name) {
+//	void GetBroadcastPartnerName(HANDLE localMessageBroadcastPartnerHandle, unsigned __int32 partnerId, LPTSTR name) {
 //		LocalMessageBroadcastPartnerDescriptor * pLocalMessageBroadcastPartner = (LocalMessageBroadcastPartnerDescriptor *) localMessageBroadcastPartnerHandle;
 //
 ////		wcout << "[GetBroadcastPartnerName] localMessageBroadcastPartnerHandle=" << localMessageBroadcastPartnerHandle << " partnerId=" << partnerId << "\n";
@@ -1155,14 +1155,14 @@ namespace LocalMessageBroadcast {
 //	}
 
 	extern "C" _declspec(dllexport)
-	LPCTSTR GetBroadcastPartnerName(HANDLE localMessageBroadcastPartnerHandle, unsigned int partnerId) {
+	LPCTSTR GetBroadcastPartnerName(HANDLE localMessageBroadcastPartnerHandle, unsigned __int32 partnerId) {
 		LocalMessageBroadcastPartnerDescriptor * pLocalMessageBroadcastPartner = (LocalMessageBroadcastPartnerDescriptor *) localMessageBroadcastPartnerHandle;
 
 		return (*(pLocalMessageBroadcastPartner->partnerNamesMap))[partnerId].c_str();
 	}
 
 	extern "C" _declspec(dllexport)
-	unsigned int GetBroadcastPartnerId(HANDLE localMessageBroadcastPartnerHandle) {
+	unsigned __int32 GetBroadcastPartnerId(HANDLE localMessageBroadcastPartnerHandle) {
 		LocalMessageBroadcastPartnerDescriptor * pLocalMessageBroadcastPartner = (LocalMessageBroadcastPartnerDescriptor *) localMessageBroadcastPartnerHandle;
 
 		return pLocalMessageBroadcastPartner->myId;

@@ -21,11 +21,11 @@ namespace ShareDataTest.TestClasses
 		}
 		
 #region TestWyphonDotNet functions
-		public unsafe void WyphonDotNetPartnerJoinedCallback(uint partnerId, string partnerName) {
+		public unsafe void WyphonDotNetPartnerJoinedCallback(UInt32 partnerId, string partnerName) {
 			Console.WriteLine("DotNet Partner joined. Its name is " + partnerName + " and its id = " + partnerId);
 		}
 		
-		public unsafe void WyphonDotNetPartnerLeftCallback(uint partnerId) {
+		public unsafe void WyphonDotNetPartnerLeftCallback(UInt32 partnerId) {
 			Console.WriteLine("DotNet Partner left. Its name is <whatever>" + " and its id = " + partnerId);			
 		}
 
@@ -40,11 +40,11 @@ namespace ShareDataTest.TestClasses
 				wp.WyphonPartnerJoinedEvent += WyphonDotNetPartnerJoinedCallback;
 				wp.WyphonPartnerLeftEvent += WyphonDotNetPartnerLeftCallback;
 				wp.WyphonPartnerD3DTextureSharedEvent += 
-					delegate(uint sendingPartnerId, uint sharedTextureHandle, uint width, uint height, uint format, uint usage, string description) {
+					delegate(UInt32 sendingPartnerId, UInt32 sharedTextureHandle, UInt32 width, UInt32 height, UInt32 format, UInt32 usage, string description) {
 						Console.WriteLine("DotNet new shared texture by partner " + sendingPartnerId + ". Its handle = " + sharedTextureHandle +  " and its other data = " + width + "x" + height + ":fmt" + format + ":usg"+ usage + " : " + description);
 					};
 				wp.WyphonPartnerD3DTextureUnsharedEvent += 
-					delegate(uint sendingPartnerId, uint sharedTextureHandle, uint width, uint height, uint format, uint usage, string description) {
+					delegate(UInt32 sendingPartnerId, UInt32 sharedTextureHandle, UInt32 width, UInt32 height, UInt32 format, UInt32 usage, string description) {
 						Console.WriteLine("DotNet STOPPED SHARING texture by partner " + sendingPartnerId + ". Its handle = " + sharedTextureHandle +  " and its other data = " + width + "x" + height + ":" + usage + " : " + description);
 					};
 				
@@ -57,9 +57,9 @@ namespace ShareDataTest.TestClasses
 							if ( input == 's' ) {
 								Console.Write("Enter description for " + name + "'s shared texture: ");
 								string textureName = Console.ReadLine();
-								uint textureHandle = 0;
-								uint textureWidth = 0;
-								uint textureHeight = 0;
+								UInt32 textureHandle = 0;
+								UInt32 textureWidth = 0;
+								UInt32 textureHeight = 0;
 								do {
 									Console.Write("Enter handle shared texture: ");
 								} while ( ! UInt32.TryParse( Console.ReadLine(), out textureHandle ) );
@@ -74,7 +74,7 @@ namespace ShareDataTest.TestClasses
 								//ShareD3DTexture( hWyphonPartner, textureHandle, textureWidth, textureHeight, 999, textureName );
 							}
 							else if ( input == 'u' ) {
-								uint textureHandle = 0;
+								UInt32 textureHandle = 0;
 								do {
 									Console.Write("Enter handle for texture you want to UN-share: ");
 								} while ( ! UInt32.TryParse( Console.ReadLine(), out textureHandle ) );

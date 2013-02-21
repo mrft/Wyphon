@@ -21,16 +21,16 @@ namespace ShareDataTest.TestClasses
 	{
 		#region LocalMessageBroadcast.dll imports & delegates
 		[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-		public unsafe delegate void PartnerJoinedCallbackDelegate(uint hLocalMessageBroadcastPartner, uint partnerId);
+		public unsafe delegate void PartnerJoinedCallbackDelegate(UInt32 hLocalMessageBroadcastPartner, UInt32 partnerId);
 
 		[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-		public unsafe delegate void PartnerLeftCallbackDelegate(uint hLocalMessageBroadcastPartner, uint partnerId);
+		public unsafe delegate void PartnerLeftCallbackDelegate(UInt32 hLocalMessageBroadcastPartner, UInt32 partnerId);
 
 		[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-		public unsafe delegate void BroadcastMessageReceivedCallbackDelegate(uint hLocalMessageBroadcastPartner, uint partnerId, IntPtr msgData, uint msgLength);
+		public unsafe delegate void BroadcastMessageReceivedCallbackDelegate(UInt32 hLocalMessageBroadcastPartner, UInt32 partnerId, IntPtr msgData, UInt32 msgLength);
 
 		[DllImport("Wyphon", CallingConvention = CallingConvention.Cdecl)]
-		public static extern uint CreateLocalMessageBroadcastPartner(
+		public static extern UInt32 CreateLocalMessageBroadcastPartner(
 				[MarshalAs(UnmanagedType.LPTStr)]string localMessageBroadcastName, 
 				[MarshalAs(UnmanagedType.LPTStr)]string applicationName, 
 				IntPtr callbackFuncCustomData,
@@ -40,16 +40,16 @@ namespace ShareDataTest.TestClasses
 			);
 
 		[DllImport("Wyphon", CallingConvention = CallingConvention.Cdecl)]
-		public static extern bool DestroyLocalMessageBroadcastPartner(uint hLocalMessageBroadcastPartner);
+		public static extern bool DestroyLocalMessageBroadcastPartner(UInt32 hLocalMessageBroadcastPartner);
 
 		[DllImport("Wyphon", CallingConvention = CallingConvention.Cdecl)]
-		public static extern bool BroadcastMessage(uint hLocalMessageBroadcastPartner, byte[] data, uint length);
+		public static extern bool BroadcastMessage(UInt32 hLocalMessageBroadcastPartner, byte[] data, UInt32 length);
 
 		[DllImport("Wyphon", CallingConvention = CallingConvention.Cdecl)]
-		public static extern IntPtr GetBroadcastPartnerName(uint hLocalMessageBroadcastPartner, uint partnerId);
+		public static extern IntPtr GetBroadcastPartnerName(UInt32 hLocalMessageBroadcastPartner, UInt32 partnerId);
 
 //		[DllImport("Wyphon", CallingConvention = CallingConvention.Cdecl)]
-//		public static extern void GetBroadcastPartnerName(uint hLocalMessageBroadcastPartner, uint partnerId, [MarshalAs(UnmanagedType.LPTStr)] System.Text.StringBuilder name);
+//		public static extern void GetBroadcastPartnerName(UInt32 hLocalMessageBroadcastPartner, UInt32 partnerId, [MarshalAs(UnmanagedType.LPTStr)] System.Text.StringBuilder name);
 		
 		#endregion LocalMessageBroadcast.dll imports & delegates
 
@@ -85,7 +85,7 @@ namespace ShareDataTest.TestClasses
 
 
 
-		private void BroadcastMessagePartnerJoinedCallback(uint hLocalMessageBroadcastPartner, uint partnerId) {
+		private void BroadcastMessagePartnerJoinedCallback(UInt32 hLocalMessageBroadcastPartner, UInt32 partnerId) {
 //			System.Text.StringBuilder name = new System.Text.StringBuilder();
 //			GetBroadcastPartnerName(hLocalMessageBroadcastPartner, partnerId, name);
 
@@ -93,14 +93,14 @@ namespace ShareDataTest.TestClasses
 			Console.Out.WriteLine( Marshal.PtrToStringAuto( GetBroadcastPartnerName(hLocalMessageBroadcastPartner, partnerId) ) + " joined the conversation..."	);
 		}
 
-		private void BroadcastMessagePartnerLeftCallback(uint hLocalMessageBroadcastPartner, uint partnerId) {
+		private void BroadcastMessagePartnerLeftCallback(UInt32 hLocalMessageBroadcastPartner, UInt32 partnerId) {
 			//System.Text.StringBuilder name = new System.Text.StringBuilder();
 			//GetBroadcastPartnerName(hLocalMessageBroadcastPartner, partnerId, name);
 			
 			Console.Out.WriteLine( Marshal.PtrToStringAuto( GetBroadcastPartnerName(hLocalMessageBroadcastPartner, partnerId) ) + " left the conversation..."	);
 		}
 
-		private void BroadcastMessageReceivedCallback(uint hLocalMessageBroadcastPartner, uint partnerId, IntPtr msgData, uint msgLength) {			
+		private void BroadcastMessageReceivedCallback(UInt32 hLocalMessageBroadcastPartner, UInt32 partnerId, IntPtr msgData, UInt32 msgLength) {			
 			//System.Text.StringBuilder name = new System.Text.StringBuilder(512);
 			//GetBroadcastPartnerName(hLocalMessageBroadcastPartner, partnerId, name);
 
@@ -121,7 +121,7 @@ namespace ShareDataTest.TestClasses
 			joinedDelegate = BroadcastMessagePartnerJoinedCallback;
 			leftDelegate = BroadcastMessagePartnerLeftCallback;
 			receivedDelegate = BroadcastMessageReceivedCallback;
-			uint hLocalMessageBroadcastPartner = CreateLocalMessageBroadcastPartner(
+			UInt32 hLocalMessageBroadcastPartner = CreateLocalMessageBroadcastPartner(
 					"BroadcastTest/channel" + channel, 
 					name, 
 					IntPtr.Zero,
@@ -141,7 +141,7 @@ namespace ShareDataTest.TestClasses
 							Console.Write( name + " says: ");
 							string s = Console.ReadLine();
 							byte[] stringBytes = new System.Text.UTF8Encoding().GetBytes(s);
-							BroadcastMessage( hLocalMessageBroadcastPartner, stringBytes, (uint)(stringBytes.GetLength(0)) );
+							BroadcastMessage( hLocalMessageBroadcastPartner, stringBytes, (UInt32)(stringBytes.GetLength(0)) );
 						}
 						
 						input = Console.ReadKey(true).KeyChar;
@@ -170,16 +170,16 @@ namespace ShareDataTest.TestClasses
 		}
 		
 //		static void TestSharedData() {
-//			uint hSharedDataPartner = CreateLocalMessageBroadcastPartner("ShareDataTest", "SharedDataTest_" + (new Random()).Next(999999), null, BroadcastMessagePartnerJoinedCallback, BroadcastMessagePartnerLeftCallback, BroadcastMessageReceivedCallback );
+//			UInt32 hSharedDataPartner = CreateLocalMessageBroadcastPartner("ShareDataTest", "SharedDataTest_" + (new Random()).Next(999999), null, BroadcastMessagePartnerJoinedCallback, BroadcastMessagePartnerLeftCallback, BroadcastMessageReceivedCallback );
 //			
-//			List<uint> l = new List<uint>();
+//			List<UInt32> l = new List<UInt32>();
 //			
 //			if ( hSharedDataPartner > 0 ) {
 //				try {
 //					char input = Console.ReadKey(true).KeyChar;//.ReadLine();
 //					while ( input != 'q' ) {
 //						if ( input == 's' ) {
-//							uint id;
+//							UInt32 id;
 //							do {
 //								Console.Write("Enter INTEGER as id (not " + l2s(l) + "): ");
 //							} while ( ! UInt32.TryParse(Console.ReadLine(), out id) );
@@ -189,7 +189,7 @@ namespace ShareDataTest.TestClasses
 //							l.Add(id);
 //						}
 //						else if ( input == 'u' ) {
-//							uint id;
+//							UInt32 id;
 //							do {
 //								Console.Write("Enter id from (" + l2s(l) + ") that you want to stop sharing: ");
 //							} while ( ! UInt32.TryParse(Console.ReadLine(), out id) );

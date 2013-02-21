@@ -26,7 +26,7 @@ namespace SharedMemory {
 
 
 	extern "C" _declspec(dllexport)
-	bool LockSharedMemory(HANDLE sharedMemoryHandle, unsigned int timeoutInMilliseconds) {
+	bool LockSharedMemory(HANDLE sharedMemoryHandle, unsigned __int32 timeoutInMilliseconds) {
 		SharedMemoryDescriptor *  pSharedMemory = (SharedMemoryDescriptor *) sharedMemoryHandle;
 		if ( pSharedMemory->hSemaphore != NULL /*&& pSharedMemory->semaphoreLocked*/ ) {
 //			std::wcout << "	-> Try to lock semaphore " << pSharedMemory->semaphoreLocked << "\n";
@@ -58,27 +58,27 @@ namespace SharedMemory {
 
 
 	extern "C" _declspec(dllexport)
-	int WriteSharedMemory( HANDLE sharedMemoryHandle, BYTE* data, unsigned int length, unsigned int offset ) {
+	__int32 WriteSharedMemory( HANDLE sharedMemoryHandle, BYTE* data, unsigned __int32 length, unsigned __int32 offset ) {
 		SharedMemoryDescriptor * pSharedMemory = (SharedMemoryDescriptor *) sharedMemoryHandle;
 
 		if ( pSharedMemory->semaphoreLocked ) {
 //			std::wcout << "Writing the message to the shared buffer: " << pSharedMemory->data << "\n";
 
 			//read highestByteWritten and maxSharedMemorySize
-			unsigned int highestByteWritten = ((unsigned int *)pSharedMemory->data)[0];
-			unsigned int maxSharedMemorySize = ((unsigned int *)pSharedMemory->data)[1];
+			unsigned __int32 highestByteWritten = ((unsigned __int32 *)pSharedMemory->data)[0];
+			unsigned __int32 maxSharedMemorySize = ((unsigned __int32 *)pSharedMemory->data)[1];
 			
-			int nrOfBytesToBeWritten = Math::Min( maxSharedMemorySize - offset, length );
+			__int32 nrOfBytesToBeWritten = Math::Min( maxSharedMemorySize - offset, length );
 			
 //			std::wcout << "== I will write " << nrOfBytesToBeWritten << "/" << length << " at offset " << offset << " since sharedMemorySize = " << maxSharedMemorySize << "\n";
 			
 			
-			unsigned int realOffset = offset + 2 * sizeof(unsigned int);
+			unsigned __int32 realOffset = offset + 2 * sizeof(unsigned __int32);
 
 			CopyMemory( pSharedMemory->data + realOffset, data, nrOfBytesToBeWritten );
 			
 			//set highest byte written !
-			((unsigned int *)pSharedMemory->data)[0] = (unsigned int) Math::Max( highestByteWritten, offset + nrOfBytesToBeWritten );
+			((unsigned __int32 *)pSharedMemory->data)[0] = (unsigned __int32) Math::Max( highestByteWritten, offset + nrOfBytesToBeWritten );
 
 			//std::wcout << "== SharedMemory will return " << pSharedMemory->highestByteWritten << " bytes now when read..." << "\n";
 
@@ -106,19 +106,19 @@ namespace SharedMemory {
 
 
 	extern "C" _declspec(dllexport)
-	int ReadSharedMemory( HANDLE sharedMemoryHandle, BYTE * &pData ) {
+	__int32 ReadSharedMemory( HANDLE sharedMemoryHandle, BYTE * &pData ) {
 		SharedMemoryDescriptor * pSharedMemory = (SharedMemoryDescriptor *) sharedMemoryHandle;
 
 		if ( pSharedMemory->semaphoreLocked ) {
 			//std::wcout << "reading the message from the shared buffer: " << pSharedMemory->data << "\n";
 			
 			//read highestByteWritten and maxSharedMemorySize
-			unsigned int highestByteWritten = ((unsigned int *)pSharedMemory->data)[0];
-			unsigned int maxSharedMemorySize = ((unsigned int *)pSharedMemory->data)[1];
-			int offset = 2 * sizeof(unsigned int);
+			unsigned __int32 highestByteWritten = ((unsigned __int32 *)pSharedMemory->data)[0];
+			unsigned __int32 maxSharedMemorySize = ((unsigned __int32 *)pSharedMemory->data)[1];
+			__int32 offset = 2 * sizeof(unsigned __int32);
 			
 			//don't return the mapped memory but a copy...
-			int nrOfBytesToBeRead = highestByteWritten;
+			__int32 nrOfBytesToBeRead = highestByteWritten;
 			pData = (BYTE *)malloc(nrOfBytesToBeRead);
 			CopyMemory( (PVOID)pData, pSharedMemory->data + offset, nrOfBytesToBeRead );
 			return nrOfBytesToBeRead;
@@ -130,7 +130,7 @@ namespace SharedMemory {
 
 
 	extern "C" _declspec(dllexport)
-	int WriteStringToSharedMemory( HANDLE sharedMemoryHandle, LPTSTR data ) {
+	__int32 WriteStringToSharedMemory( HANDLE sharedMemoryHandle, LPTSTR data ) {
 		SharedMemoryDescriptor * pSharedMemory = (SharedMemoryDescriptor *) sharedMemoryHandle;
 
 		//+1 ? copy \0 also??
@@ -138,8 +138,8 @@ namespace SharedMemory {
 
 //		if ( pSharedMemory->semaphoreLocked ) {
 ////			std::wcout << "reading the message from the shared buffer: " << pSharedMemory->data << "\n";
-//			int offset = 0;
-//			int nrOfBytesToBeWritten = Math::Min( pSharedMemory->sharedMemorySize, offset + (_tcslen(data) * sizeof(TCHAR) ) );
+//			__int32 offset = 0;
+//			__int32 nrOfBytesToBeWritten = Math::Min( pSharedMemory->sharedMemorySize, offset + (_tcslen(data) * sizeof(TCHAR) ) );
 //			CopyMemory( (PVOID)pSharedMemory->data, data, nrOfBytesToBeWritten );			
 //			pSharedMemory->highestByteWritten = Math::Max( pSharedMemory->highestByteWritten, offset + nrOfBytesToBeWritten );
 //			return true;
@@ -156,9 +156,9 @@ namespace SharedMemory {
 		if ( pSharedMemory->semaphoreLocked ) {
 //			std::wcout << "reading the message from the shared buffer: " << pSharedMemory->data << "\n";
 			//read highestByteWritten and maxSharedMemorySize
-			unsigned int highestByteWritten = ((unsigned int *)pSharedMemory->data)[0];
-			unsigned int maxSharedMemorySize = ((unsigned int *)pSharedMemory->data)[1];
-			int offset = 2 * sizeof(unsigned int);
+			unsigned __int32 highestByteWritten = ((unsigned __int32 *)pSharedMemory->data)[0];
+			unsigned __int32 maxSharedMemorySize = ((unsigned __int32 *)pSharedMemory->data)[1];
+			__int32 offset = 2 * sizeof(unsigned __int32);
 
 			return (LPTSTR)pSharedMemory->data + offset;
 		}
@@ -193,20 +193,20 @@ namespace SharedMemory {
 
 
 	extern "C" _declspec(dllexport)
-	HANDLE CreateSharedMemory(LPTSTR lpName, unsigned int startSize, unsigned int maxSize) {
+	HANDLE CreateSharedMemory(LPTSTR lpName, unsigned __int32 startSize, unsigned __int32 maxSize) {
 //		if (maxSize > 2) {
 //			TCHAR szName[]=TEXT("Local\\MyFileMappingObject");
 //			std::wcout << "Let's try CreateSharedMemory with our own name '" << szName << "' returned " << CreateSharedMemory(szName, 1, 1) <<"\n";
 //			return NULL;
 //		}
 
-		int nameForSemaphoreLength = _tcslen(lpName) + 8 * sizeof(TCHAR);
+		__int32 nameForSemaphoreLength = _tcslen(lpName) + 8 * sizeof(TCHAR);
 		LPTSTR nameForSemaphore = new TCHAR[nameForSemaphoreLength];
 		_tcscpy_s(nameForSemaphore, nameForSemaphoreLength, lpName);
 		_tcscat_s(nameForSemaphore, nameForSemaphoreLength, _TEXT("_SEM") );
 		//std::wcout << "NAME for semaphore = " << nameForSemaphore << "\n";
 
-		int nameForFileMappingLength = _tcslen(lpName) + 16 * sizeof(TCHAR);
+		__int32 nameForFileMappingLength = _tcslen(lpName) + 16 * sizeof(TCHAR);
 		LPTSTR nameForFileMapping = new TCHAR[nameForFileMappingLength];
 		_tcscpy_s(nameForFileMapping, nameForFileMappingLength, _TEXT("Local\\") );
 		_tcscat_s(nameForFileMapping, nameForFileMappingLength, lpName);
@@ -222,7 +222,7 @@ namespace SharedMemory {
 		//pSharedMemory->sharedMemorySize = maxSize;
 		//pSharedMemory->highestByteWritten = startSize;
 		
-		int realMaxSize = maxSize + ( 2 * sizeof(unsigned int));
+		__int32 realMaxSize = maxSize + ( 2 * sizeof(unsigned __int32));
 
 		//a sempahore counts DOWN if it is blocked !!! so initalCount should be equal to maxcount (1 in our case)
 		pSharedMemory->hSemaphore = CreateSemaphore( NULL, 1L, 1L, nameForSemaphore );
@@ -272,8 +272,8 @@ namespace SharedMemory {
 				//empty the whole buffer
 				memset ( (PVOID)pSharedMemory->data, 0, realMaxSize );
 				
-				((unsigned int *)pSharedMemory->data)[0] = startSize;
-				((unsigned int *)pSharedMemory->data)[1] = maxSize;
+				((unsigned __int32 *)pSharedMemory->data)[0] = startSize;
+				((unsigned __int32 *)pSharedMemory->data)[1] = maxSize;
 			}
 			else {
 				//print what's been written in the buffer

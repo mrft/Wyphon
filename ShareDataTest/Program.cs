@@ -88,10 +88,10 @@ namespace ShareDataTest
 			Console.WriteLine( "Exiting application..." );
 		}
 		
-		static string l2s(List<uint> list) {
+		static string l2s(List<UInt32> list) {
 			string s = "";
 			
-			foreach (uint x in list) {
+			foreach (UInt32 x in list) {
 				s += (s.Length == 0 ? "" : ", ") + x;
 			}
 			return s;

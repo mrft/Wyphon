@@ -23,18 +23,18 @@ namespace LocalMessageBroadcast
 	{
 		#region LocalMessageBroadcast.dll imports & delegates
 		
-		//HANDLE localMessageBroadcastPartnerHandle, unsigned int sendingPartnerId, LPCTSTR sendingPartnerName, void * customData
+		//unsigned __int32 localMessageBroadcastPartnerHandle, unsigned __int32 sendingPartnerId, LPCTSTR sendingPartnerName, void * customData
 		[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-		private unsafe delegate void PartnerJoinedCallbackDelegate(uint hLocalMessageBroadcastPartner, uint partnerId, IntPtr partnerNameLPTSTR, IntPtr customData);
+		private unsafe delegate void PartnerJoinedCallbackDelegate(UInt32 hLocalMessageBroadcastPartner, UInt32 partnerId, IntPtr partnerNameLPTSTR, IntPtr customData);
 
 		[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-		private unsafe delegate void PartnerLeftCallbackDelegate(uint hLocalMessageBroadcastPartner, uint partnerId, IntPtr customData);
+		private unsafe delegate void PartnerLeftCallbackDelegate(UInt32 hLocalMessageBroadcastPartner, UInt32 partnerId, IntPtr customData);
 
 		[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-		private unsafe delegate void BroadcastMessageReceivedCallbackDelegate(uint hLocalMessageBroadcastPartner, uint partnerId, IntPtr msgData, uint msgLength, IntPtr customData);
+		private unsafe delegate void BroadcastMessageReceivedCallbackDelegate(UInt32 hLocalMessageBroadcastPartner, UInt32 partnerId, IntPtr msgData, UInt32 msgLength, IntPtr customData);
 
 		[DllImport("Wyphon", CallingConvention = CallingConvention.Cdecl)]
-		private static extern uint CreateLocalMessageBroadcastPartner(
+		private static extern UInt32 CreateLocalMessageBroadcastPartner(
 				[MarshalAs(UnmanagedType.LPTStr)]string localMessageBroadcastName, 
 				[MarshalAs(UnmanagedType.LPTStr)]string applicationName, 
 				IntPtr callbackFuncCustomData,
@@ -44,29 +44,29 @@ namespace LocalMessageBroadcast
 			);
 
 		[DllImport("Wyphon", CallingConvention = CallingConvention.Cdecl)]
-		private static extern bool DestroyLocalMessageBroadcastPartner(uint hLocalMessageBroadcastPartner);
+		private static extern bool DestroyLocalMessageBroadcastPartner(UInt32 hLocalMessageBroadcastPartner);
 
 		[DllImport("Wyphon", CallingConvention = CallingConvention.Cdecl)]
-		private static extern bool BroadcastMessage(uint hLocalMessageBroadcastPartner, byte[] data, uint length);
+		private static extern bool BroadcastMessage(UInt32 hLocalMessageBroadcastPartner, byte[] data, UInt32 length);
 
         [DllImport("Wyphon", CallingConvention = CallingConvention.Cdecl)]
-        private static extern bool SendMessageToSinglePartner(uint hLocalMessageBroadcastPartner, uint partnerId, byte[] data, uint length);
+        private static extern bool SendMessageToSinglePartner(UInt32 hLocalMessageBroadcastPartner, UInt32 partnerId, byte[] data, UInt32 length);
 
 		[DllImport("Wyphon", CallingConvention = CallingConvention.Cdecl)]
-		private static extern IntPtr GetBroadcastPartnerName(uint hLocalMessageBroadcastPartner, uint partnerId);
+		private static extern IntPtr GetBroadcastPartnerName(UInt32 hLocalMessageBroadcastPartner, UInt32 partnerId);
 
 		[DllImport("Wyphon", CallingConvention = CallingConvention.Cdecl)]
-		private static extern uint GetPartnerId(uint wyphonPartnerHandle);
+		private static extern UInt32 GetPartnerId(UInt32 wyphonPartnerHandle);
 
 //		[DllImport("Wyphon", CallingConvention = CallingConvention.Cdecl)]
-//		public static extern void GetBroadcastPartnerName(uint hLocalMessageBroadcastPartner, uint partnerId, [MarshalAs(UnmanagedType.LPTStr)] System.Text.StringBuilder name);
+//		public static extern void GetBroadcastPartnerName(UInt32 hLocalMessageBroadcastPartner, UInt32 partnerId, [MarshalAs(UnmanagedType.LPTStr)] System.Text.StringBuilder name);
 		
 		#endregion LocalMessageBroadcast.dll imports & delegates
 
 		
 		#region fields
 		
-		uint localMessageBroadcastPartnerHandle = 0;
+		UInt32 localMessageBroadcastPartnerHandle = 0;
 		
 		//by storing them as class variables, we make sure the garbage collector doesn't remove these too early
 		private PartnerJoinedCallbackDelegate partnerJoinedCallbackDelegate;
@@ -75,10 +75,10 @@ namespace LocalMessageBroadcast
 		#endregion fields
 		
 		// What the event handlers should look like
-		public delegate void PartnerJoinedHandler(uint partnerId, string partnerName);
-		public delegate void PartnerLeftHandler(uint partnerId);
+		public delegate void PartnerJoinedHandler(UInt32 partnerId, string partnerName);
+		public delegate void PartnerLeftHandler(UInt32 partnerId);
 
-		public delegate void MessageReceivedHandler(uint sendingPartnerId, IntPtr msgData, uint msgLength);
+		public delegate void MessageReceivedHandler(UInt32 sendingPartnerId, IntPtr msgData, UInt32 msgLength);
 
 		// Public events that one can subscribe to
 		public event PartnerJoinedHandler OnPartnerJoined;
@@ -105,7 +105,7 @@ namespace LocalMessageBroadcast
 		}
 
 		
-		private void PartnerJoinedCallback(uint hLocalMessageBroadcastPartner, uint partnerId, IntPtr partnerNameLPTSTR, IntPtr customData) {
+		private void PartnerJoinedCallback(UInt32 hLocalMessageBroadcastPartner, UInt32 partnerId, IntPtr partnerNameLPTSTR, IntPtr customData) {
 			if (OnPartnerJoined != null) {
 				try {
 					OnPartnerJoined.Invoke(partnerId, Marshal.PtrToStringAuto(partnerNameLPTSTR));
@@ -116,7 +116,7 @@ namespace LocalMessageBroadcast
 			}
 		}
 		
-		public void PartnerLeftCallback(uint hLocalMessageBroadcastPartner, uint partnerId, IntPtr customData) {
+		public void PartnerLeftCallback(UInt32 hLocalMessageBroadcastPartner, UInt32 partnerId, IntPtr customData) {
 			if (OnPartnerLeft != null) {
 				try {
 					OnPartnerLeft.Invoke(partnerId);
@@ -127,7 +127,7 @@ namespace LocalMessageBroadcast
 			}			
 		}
 
-		public void MessageReceivedCallback(uint hLocalMessageBroadcastPartner, uint sendingPartnerId, IntPtr msgData, uint msgLength, IntPtr customData) {
+		public void MessageReceivedCallback(UInt32 hLocalMessageBroadcastPartner, UInt32 sendingPartnerId, IntPtr msgData, UInt32 msgLength, IntPtr customData) {
 			if (OnMessage != null) {
 				try {
 					OnMessage.Invoke(sendingPartnerId, msgData, msgLength);
@@ -138,21 +138,21 @@ namespace LocalMessageBroadcast
 			}
 		}
 
-		public uint PartnerId {
+		public UInt32 PartnerId {
 			get { return GetPartnerId(localMessageBroadcastPartnerHandle); }
 		}
 		
-		public string GetPartnerName(uint partnerId) {
+		public string GetPartnerName(UInt32 partnerId) {
 			return Marshal.PtrToStringAuto( GetBroadcastPartnerName(localMessageBroadcastPartnerHandle, partnerId) );
 		}
 		
 		public bool BroadcastMessage(byte[] data) {
-			return BroadcastMessage(localMessageBroadcastPartnerHandle, data, (uint) data.Length);
+			return BroadcastMessage(localMessageBroadcastPartnerHandle, data, (UInt32) data.Length);
 		}
 
-        public bool SendMessageToSinglePartner(uint partnerId, byte[] data)
+        public bool SendMessageToSinglePartner(UInt32 partnerId, byte[] data)
         {
-            return SendMessageToSinglePartner(localMessageBroadcastPartnerHandle, partnerId, data, (uint)data.Length);
+            return SendMessageToSinglePartner(localMessageBroadcastPartnerHandle, partnerId, data, (UInt32)data.Length);
         }
 
 		public void Dispose() {
