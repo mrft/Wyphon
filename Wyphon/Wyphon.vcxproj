@@ -98,7 +98,14 @@
   <ItemDefinitionGroup Condition=" '$(Configuration)' == 'Debug' ">
     <ClCompile>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <CompileAsManaged Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</CompileAsManaged>
+      <DebugInformationFormat Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">ProgramDatabase</DebugInformationFormat>
+      <Optimization Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Disabled</Optimization>
     </ClCompile>
+    <Link>
+      <GenerateDebugInformation Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</GenerateDebugInformation>
+      <AssemblyDebug Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</AssemblyDebug>
+    </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition=" '$(Configuration)' == 'Release' ">
     <ClCompile>
