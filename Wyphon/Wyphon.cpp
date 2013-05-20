@@ -523,10 +523,10 @@ namespace Wyphon {
 		
 		map<unsigned __int32, map<HANDLE, WyphonD3DTextureInfo*>> * tMap = pWyphonPartner->sharedByPartnersD3DTexturesMap;
 		map<unsigned __int32, map<HANDLE, WyphonD3DTextureInfo*>>::iterator itr;
-		for ( itr = tMap->begin(); itr != tMap->end(); itr++ ) {
+		for ( itr = tMap->begin(); itr != tMap->end(); ++itr ) {
 //			wcout << "Wyphon: GetD3DTextureInfo " << itr->first << "\n";
 			
-			if ( (itr->second)[sharedTextureHandle] != NULL ) {
+			if ( (itr->second).count(sharedTextureHandle) ) {
 				wyphonPartnerId = itr->first;
 				WyphonD3DTextureInfo * pTextureInfo = (itr->second)[sharedTextureHandle];
 				width = pTextureInfo->width;
