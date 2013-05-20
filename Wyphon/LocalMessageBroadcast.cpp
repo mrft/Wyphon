@@ -1168,4 +1168,36 @@ namespace LocalMessageBroadcast {
 		return pLocalMessageBroadcastPartner->myId;
 	}
 
+	/**
+	 * GetBroadcastPartnerIdByName
+	 *
+	 * @param		HANDLE		the handle of the own message broadcast unit
+	 * @param		LPCTSTR		the name of the partner whose id we want to retrieve
+	 *							if empty, it will return the first partner in list (if any)
+	 *
+	 * @return		uint32		the broadcastPartner's id. Zero if not found.
+	 *
+	 * @author		Elio
+	 */
+	extern "C" _declspec(dllexport)
+	unsigned __int32 GetBroadcastPartnerIdByName(HANDLE localMessageBroadcastPartnerHandle, LPCTSTR partnerName) {
+		LocalMessageBroadcastPartnerDescriptor * pLocalMessageBroadcastPartner = (LocalMessageBroadcastPartnerDescriptor *) localMessageBroadcastPartnerHandle;
+
+		unsigned __int32 partnerId = 0;
+
+		map<unsigned __int32, wstring>* names = pLocalMessageBroadcastPartner->partnerNamesMap;
+		map<unsigned __int32, wstring>::const_iterator it;
+			// search map for a match
+		for ( it = names->begin(); it != names->end(); it++ ) {
+			BOOL bEqual = it->second == partnerName;
+			BOOL bNoFilter = wcslen(partnerName) == 0;
+			if ( bEqual || bNoFilter ) {
+				partnerId = it->first;
+				break;
+			}
+		}
+
+		return partnerId;
+	}
+
 }

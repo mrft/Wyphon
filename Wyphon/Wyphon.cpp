@@ -549,4 +549,55 @@ namespace Wyphon {
 		return GetBroadcastPartnerId(pWyphonPartner->hLocalMessageBroadcastPartner);
 	}
 
+	/**
+	 * unsigned __int32 GetBroadcastPartnerIdByName(HANDLE localMessageBroadcastPartnerHandle, LPCTSTR partnerName)
+	 *
+	 * HANDLE		the handle of the own message broadcast unit
+	 * LPCTSTR		the name of the partner whose id we want to retrieve
+	 *
+	 * @author		Elio
+	 */
+	extern "C" _declspec(dllexport)
+	unsigned __int32 getPartnerIdByName(HANDLE wyphonPartnerHandle, LPCTSTR partnerName) {
+		WyphonPartnerDescriptor * pWyphonPartner = (WyphonPartnerDescriptor *) wyphonPartnerHandle;
+		return GetBroadcastPartnerIdByName( pWyphonPartner->hLocalMessageBroadcastPartner, partnerName );
+	}
+
+
+	/**
+	 * getShareHandleByDescription(HANDLE wyphonPartnerHandle, unsigned __int32 wyphonPartnerId, LPCTSTR TextureName )
+	 * 
+	 * Retrieves the share handle of the texture by it's name and wyphonPartnerId
+	 *
+	 * HANDLE		the handle of the own message broadcast unit
+	 * uint32		the partner id of the texture's owner
+	 * LPCTSTR		the name of the texture whose share handle we want to retrieve
+	 * 
+	 * @author		Elio
+	 */
+	extern "C" _declspec(dllexport)
+	HANDLE getShareHandleByDescription(HANDLE wyphonPartnerHandle, unsigned __int32 wyphonPartnerId, LPCTSTR TextureName ) {
+		WyphonPartnerDescriptor * pWyphonPartner = (WyphonPartnerDescriptor *) wyphonPartnerHandle;
+		
+		HANDLE shareHandle = NULL;
+		
+		if ( pWyphonPartner->sharedByPartnersD3DTexturesMap->count(wyphonPartnerId) == 0 ) {
+			return shareHandle;
+		}
+
+		map<HANDLE, WyphonD3DTextureInfo * > * texturesMap =  &(*(pWyphonPartner->sharedByPartnersD3DTexturesMap))[wyphonPartnerId];
+		map<HANDLE, WyphonD3DTextureInfo*>::iterator itr;
+			// search for texture with desired description
+		for ( itr = texturesMap->begin(); itr != texturesMap->end(); itr++ ) {
+			BOOL bEqual = wcscmp(itr->second->description, TextureName) == 0;
+			BOOL bNoFilter = wcslen(TextureName) == 0;
+			if ( bNoFilter || bEqual ) {
+				shareHandle = (HANDLE) itr->second->hSharedTexture;
+				break;
+			}
+		}
+
+		return shareHandle;
+	}
+
 }

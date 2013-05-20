@@ -46,6 +46,9 @@ namespace LocalMessageBroadcast {
 	extern "C" _declspec(dllexport)
 	unsigned __int32 GetBroadcastPartnerId(HANDLE localMessageBroadcastPartnerHandle);
 
+	extern "C" _declspec(dllexport)
+	unsigned __int32 GetBroadcastPartnerIdByName(HANDLE localMessageBroadcastPartnerHandle, LPCTSTR partnerName);
+
 //	/// <summary>
 //	///
 //	/// </summary>
