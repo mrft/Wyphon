@@ -254,7 +254,7 @@ namespace Wyphon {
 		
 		if ( pWyphonPartner->pD3DtextureSharingStartedCallbackFunc != NULL ) {
 			try {
-				pWyphonPartner->pD3DtextureSharingStartedCallbackFunc(pWyphonPartner, sendingPartnerId, (HANDLE)pTextureInfo->hSharedTexture, pTextureInfo->width, pTextureInfo->height, pTextureInfo->format, pTextureInfo->usage, pTextureInfo->description );
+				pWyphonPartner->pD3DtextureSharingStartedCallbackFunc(pWyphonPartner, sendingPartnerId, (HANDLE)pTextureInfo->hSharedTexture, pTextureInfo->width, pTextureInfo->height, pTextureInfo->format, pTextureInfo->usage, pTextureInfo->description, pWyphonPartner->callbackFuncCustomData );
 			} catch (exception) {
 			}
 		}
@@ -277,7 +277,7 @@ namespace Wyphon {
 			WyphonD3DTextureInfo* pTextureInfo = ( ( * ( pWyphonPartner->sharedByPartnersD3DTexturesMap ) )[sendingPartnerId])[textureHandle];
 			//HANDLE sharedTextureHandle, unsigned __int32 width, unsigned __int32 height, DWORD usage, LPTSTR description
 			try {
-				pWyphonPartner->pD3DtextureSharingStoppedCallbackFunc( pWyphonPartner, sendingPartnerId, (HANDLE)pTextureInfo->hSharedTexture, pTextureInfo->width, pTextureInfo->height, pTextureInfo->format, pTextureInfo->usage, pTextureInfo->description );
+				pWyphonPartner->pD3DtextureSharingStoppedCallbackFunc( pWyphonPartner, sendingPartnerId, (HANDLE)pTextureInfo->hSharedTexture, pTextureInfo->width, pTextureInfo->height, pTextureInfo->format, pTextureInfo->usage, pTextureInfo->description, pWyphonPartner->callbackFuncCustomData );
 			} catch (exception) {
 			}
 		}
