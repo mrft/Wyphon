@@ -226,6 +226,7 @@ namespace WyphonUtils {
 		}
 
 		//create texture
+		*out_pD3D9Texture = NULL;
 		hr = g_pDeviceD3D9ex_WyphonUtils->CreateTexture(width, height, 1, usage, format, D3DPOOL_DEFAULT, out_pD3D9Texture, out_SharedTextureHandle);
 
 		return hr;
@@ -246,7 +247,7 @@ namespace WyphonUtils {
 	/// @author		Elio
 	/// 
 	extern "C" _declspec(dllexport)
-	HRESULT CreateLinkedGLTexture(unsigned __int32 width, unsigned __int32 height, DWORD usage, DWORD format, HANDLE DXShareHandle, GLuint &out_GlTextureName, HANDLE &out_GlTextureHandle) {
+	HRESULT CreateLinkedGLTexture(unsigned __int32 width, unsigned __int32 height, DWORD usage, DWORD format, HANDLE &DXShareHandle, GLuint &out_GlTextureName, HANDLE &out_GlTextureHandle) {
 		HRESULT hr = S_OK;
 
 		if ( wglDXCloseDeviceNV == NULL ) {
@@ -263,11 +264,16 @@ namespace WyphonUtils {
 			throw TEXT("Cannot prepare shared DX Texture for OpenGl. wglDXSetResourceShareHandleNV() failed.");
 		}
 
+		GLenum access = WGL_ACCESS_READ_ONLY_NV;
+		if ( DXShareHandle == NULL ) { // we're about to create a new texture, so we will want to write to it
+			access = WGL_ACCESS_READ_WRITE_NV;
+		}
+
 			// register for interop and associate with dx texture
 		out_GlTextureHandle = wglDXRegisterObjectNV(g_GLDXInteropHandle, pD3D9Texture,
 			out_GlTextureName,
 			GL_TEXTURE_2D,
-			WGL_ACCESS_READ_ONLY_NV);
+			access);
 			/* dx texture seems to be released automatically by interop device, so we do not need to take care of this
 			 * this is not documented, but when carefully watching the variables, the pointer gets reset some time after without us doing anything
 			 */
