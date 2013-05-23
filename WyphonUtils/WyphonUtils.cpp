@@ -80,10 +80,13 @@ namespace WyphonUtils {
 	 * @author		Elio
 	 */
 	HRESULT ReleaseGLDXInterop() {
-		if ( g_GLDXInteropHandle == NULL ) {
+		if ( g_GLDXInteropHandle == NULL ) { // already closed
 			return S_FALSE;
 		}
-		if ( !wglDXCloseDeviceNV(g_GLDXInteropHandle) ) {
+		BOOL success = wglDXCloseDeviceNV(g_GLDXInteropHandle);
+		if ( success ) {
+			g_GLDXInteropHandle = NULL;
+		} else {
 			throw TEXT("NVidia wglDXInterop failed to close.");
 		}
 		
@@ -182,8 +185,14 @@ namespace WyphonUtils {
 	HRESULT ReleaseDevice(HANDLE wyphonDeviceHandle) {
 		if ( CloseHandle(wyphonDeviceHandle) ) { // handle really existed
 			if ( g_wyphonDeviceHandles.size() == 0 ) { // the last user left
-				if ( g_pDeviceD3D9ex_WyphonUtils != NULL ) g_pDeviceD3D9ex_WyphonUtils->Release();
-				if ( g_pDirect3D9Ex_WyphonUtils != NULL ) g_pDirect3D9Ex_WyphonUtils->Release();
+				if ( g_pDeviceD3D9ex_WyphonUtils != NULL ) {
+					g_pDeviceD3D9ex_WyphonUtils->Release();
+					g_pDeviceD3D9ex_WyphonUtils = NULL;
+				}
+				if ( g_pDirect3D9Ex_WyphonUtils != NULL ) {
+					g_pDirect3D9Ex_WyphonUtils->Release();
+					g_pDirect3D9Ex_WyphonUtils = NULL;
+				}
 				ReleaseGLDXInterop();
 			}
 			return S_OK;
@@ -255,7 +264,10 @@ namespace WyphonUtils {
 		}
 
 		LPDIRECT3DTEXTURE9 pD3D9Texture;
-		CreateDX9ExTexture(width, height, usage, (D3DFORMAT) format, &pD3D9Texture, &DXShareHandle);
+		HRESULT res = CreateDX9ExTexture(width, height, usage, (D3DFORMAT) format, &pD3D9Texture, &DXShareHandle);
+		if ( res != S_OK ) {
+			throw TEXT("Cannot create DX9Ex Texture.");
+		}
 
 		glGenTextures(1, &out_GlTextureName);
 
