@@ -558,14 +558,14 @@ namespace Wyphon {
 	 * @author		Elio
 	 */
 	extern "C" _declspec(dllexport)
-	unsigned __int32 getPartnerIdByName(HANDLE wyphonPartnerHandle, LPCTSTR partnerName) {
+	unsigned __int32 GetPartnerIdByName(HANDLE wyphonPartnerHandle, LPCTSTR partnerName) {
 		WyphonPartnerDescriptor * pWyphonPartner = (WyphonPartnerDescriptor *) wyphonPartnerHandle;
 		return GetBroadcastPartnerIdByName( pWyphonPartner->hLocalMessageBroadcastPartner, partnerName );
 	}
 
 
 	/**
-	 * getShareHandleByDescription(HANDLE wyphonPartnerHandle, unsigned __int32 wyphonPartnerId, LPCTSTR TextureName )
+	 * GetShareHandleByDescription(HANDLE wyphonPartnerHandle, unsigned __int32 wyphonPartnerId, LPCTSTR TextureName )
 	 * 
 	 * Retrieves the share handle of the texture by it's name and wyphonPartnerId
 	 *
@@ -576,7 +576,7 @@ namespace Wyphon {
 	 * @author		Elio
 	 */
 	extern "C" _declspec(dllexport)
-	HANDLE getShareHandleByDescription(HANDLE wyphonPartnerHandle, unsigned __int32 wyphonPartnerId, LPCTSTR TextureName ) {
+	HANDLE GetShareHandleByDescription(HANDLE wyphonPartnerHandle, unsigned __int32 wyphonPartnerId, LPCTSTR TextureName ) {
 		WyphonPartnerDescriptor * pWyphonPartner = (WyphonPartnerDescriptor *) wyphonPartnerHandle;
 		
 		HANDLE shareHandle = NULL;
