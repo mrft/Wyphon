@@ -67,7 +67,13 @@ namespace Wyphon
 
 		[DllImport("Wyphon", CallingConvention = CallingConvention.Cdecl)]
 		private static extern UInt32 GetPartnerId(UInt32 wyphonPartnerHandle);
-			
+
+		[DllImport("Wyphon", CallingConvention = CallingConvention.Cdecl)]
+		private static extern UInt32 GetPartnerIdByName(UInt32 wyphonPartnerHandle, [MarshalAs(UnmanagedType.LPTStr)]string partnerName);
+		
+		[DllImport("Wyphon", CallingConvention = CallingConvention.Cdecl)]
+		private static extern UInt32 GetShareHandleByDescription( UInt32 wyphonPartnerHandle, UInt32 wyphonPartnerId, [MarshalAs( UnmanagedType.LPTStr )]string textureName );
+
 		#endregion Wyphon.dll imports & delegates
 		
 		#region fields
@@ -182,6 +188,51 @@ namespace Wyphon
 		public string GetPartnerName(UInt32 partnerId) {
 			return Marshal.PtrToStringAuto( GetWyphonPartnerName(wyphonPartnerHandle, partnerId) );
 		}
+
+
+		public UInt32 GetPartnerIdByName( string partnerName ) {
+			return GetPartnerIdByName( wyphonPartnerHandle, partnerName );
+		}
+
+		public UInt32 GetShareHandleByDescription( UInt32 wyphonPartnerId, string textureName ) {
+			return GetShareHandleByDescription( wyphonPartnerHandle, wyphonPartnerId, textureName );
+		}
+
+		public bool GetD3DTextureInfo( UInt32 sharedTextureHandle, out UInt32 wyphonPartnerId, out UInt32 width, out UInt32 height, out UInt32 format, out UInt32 usage, out string description ) {
+			//descr.
+			char[] chars = new char[2048];
+			IntPtr descrPtr = System.Runtime.InteropServices.Marshal.UnsafeAddrOfPinnedArrayElement(chars, 0);
+			bool retVal =  GetD3DTextureInfo( wyphonPartnerHandle, sharedTextureHandle, out wyphonPartnerId, out width, out height, out format, out usage, ref descrPtr, 2048 );
+
+
+			//TODO fill description string with the bytes in descrPtr...
+			//using System.Text;
+			//string desc = new string( chars );
+			description = new string( chars );
+
+			return retVal;
+		}
+
+		/// <summary>
+		/// Shortcut method to get a texture's info by passing the applicatio name and textue description
+		/// </summary>
+		/// <param name="sharedTextureHandle"></param>
+		/// <param name="wyphonPartnerId"></param>
+		/// <param name="width"></param>
+		/// <param name="height"></param>
+		/// <param name="format"></param>
+		/// <param name="usage"></param>
+		/// <param name="description"></param>
+		/// <returns></returns>
+		public bool GetD3DTextureInfo( string partnerName, string sharedTextureName, out UInt32 width, out UInt32 height, out UInt32 format, out UInt32 usage ) {
+			
+			UInt32 pId = GetPartnerIdByName( partnerName );
+			UInt32 shareHandle = GetShareHandleByDescription( pId, sharedTextureName );
+			string description;
+
+			return GetD3DTextureInfo( shareHandle, out pId, out width, out height, out format, out usage, out description );
+		}
+
 
 		public void Dispose() {			
 			if (wyphonPartnerHandle != 0) {

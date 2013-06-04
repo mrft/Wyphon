@@ -79,7 +79,7 @@ namespace Wyphon {
 	unsigned __int32 GetPartnerIdByName(HANDLE wyphonPartnerHandle, LPCTSTR partnerName);
 
 	extern "C" _declspec(dllexport)
-	HANDLE GetShareHandleByDescription(HANDLE wyphonPartnerHandle, unsigned __int32 wyphonPartnerId, LPCTSTR TextureName );
+	HANDLE GetShareHandleByDescription(HANDLE wyphonPartnerHandle, unsigned __int32 wyphonPartnerId, LPCTSTR textureName );
 	
 //	extern "C" _declspec(dllexport)
 //	std::array<WyphonInfo *> GetAllD3DTextureInfo(HANDLE wyphonPartnerHandle);

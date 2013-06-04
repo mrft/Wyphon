@@ -82,6 +82,32 @@ namespace ShareDataTest.TestClasses
 								wp.UnshareD3DTexture(textureHandle);
 								//UnshareD3DTexture(hWyphonPartner, textureHandle);
 							}
+							else if ( input == 'i' ) {
+								Console.WriteLine( "We will try to find the info of a specific texture by name..." );
+								string appName = "";
+								do {
+									Console.Write( "Enter name of the application that shared the texture: " );
+									appName = Console.ReadLine( );
+								} while ( appName.Length == 0 );
+
+								string textureName = "";
+								do {
+									Console.Write( "Enter description of the texture: " );
+									textureName = Console.ReadLine( );
+								} while ( textureName.Length == 0 );
+
+
+								UInt32 width = 0;
+								UInt32 height = 0;
+								UInt32 format = 0;
+								UInt32 usage = 0;
+
+								bool retreived = wp.GetD3DTextureInfo( appName, textureName, out width, out height, out format, out usage );
+
+								Console.WriteLine( ( retreived ? "We found this texture's info:" : "We were unable to find this texture's info" ) + " - " +
+													width + "x" + height + " fmt:" + format + " usg:" + usage );
+
+							}
 							
 							input = Console.ReadKey(true).KeyChar;
 						}

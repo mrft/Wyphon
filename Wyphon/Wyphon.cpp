@@ -565,7 +565,7 @@ namespace Wyphon {
 
 
 	/**
-	 * GetShareHandleByDescription(HANDLE wyphonPartnerHandle, unsigned __int32 wyphonPartnerId, LPCTSTR TextureName )
+	 * GetShareHandleByDescription(HANDLE wyphonPartnerHandle, unsigned __int32 wyphonPartnerId, LPCTSTR textureName )
 	 * 
 	 * Retrieves the share handle of the texture by it's name and wyphonPartnerId
 	 *
@@ -576,7 +576,7 @@ namespace Wyphon {
 	 * @author		Elio
 	 */
 	extern "C" _declspec(dllexport)
-	HANDLE GetShareHandleByDescription(HANDLE wyphonPartnerHandle, unsigned __int32 wyphonPartnerId, LPCTSTR TextureName ) {
+	HANDLE GetShareHandleByDescription(HANDLE wyphonPartnerHandle, unsigned __int32 wyphonPartnerId, LPCTSTR textureName ) {
 		WyphonPartnerDescriptor * pWyphonPartner = (WyphonPartnerDescriptor *) wyphonPartnerHandle;
 		
 		HANDLE shareHandle = NULL;
@@ -589,8 +589,8 @@ namespace Wyphon {
 		map<HANDLE, WyphonD3DTextureInfo*>::iterator itr;
 			// search for texture with desired description
 		for ( itr = texturesMap->begin(); itr != texturesMap->end(); itr++ ) {
-			BOOL bEqual = wcscmp(itr->second->description, TextureName) == 0;
-			BOOL bNoFilter = wcslen(TextureName) == 0;
+			BOOL bEqual = wcscmp(itr->second->description, textureName) == 0;
+			BOOL bNoFilter = wcslen(textureName) == 0;
 			if ( bNoFilter || bEqual ) {
 				shareHandle = (HANDLE) itr->second->hSharedTexture;
 				break;
