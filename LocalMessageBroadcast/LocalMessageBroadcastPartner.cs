@@ -60,7 +60,10 @@ namespace LocalMessageBroadcast
 
 //		[DllImport("Wyphon", CallingConvention = CallingConvention.Cdecl)]
 //		public static extern void GetBroadcastPartnerName(UInt32 hLocalMessageBroadcastPartner, UInt32 partnerId, [MarshalAs(UnmanagedType.LPTStr)] System.Text.StringBuilder name);
-		
+
+		[DllImport( "Wyphon", CallingConvention = CallingConvention.Cdecl )]
+		private static extern UInt32 GetBroadcastPartnerIdByName( UInt32 wyphonPartnerHandle, [MarshalAs( UnmanagedType.LPTStr )]string partnerName );
+
 		#endregion LocalMessageBroadcast.dll imports & delegates
 
 		
@@ -145,7 +148,11 @@ namespace LocalMessageBroadcast
 		public string GetPartnerName(UInt32 partnerId) {
 			return Marshal.PtrToStringAuto( GetBroadcastPartnerName(localMessageBroadcastPartnerHandle, partnerId) );
 		}
-		
+
+		public UInt32 GetPartnerIdByName( string partnerName ) {
+			return GetBroadcastPartnerIdByName( localMessageBroadcastPartnerHandle, partnerName );
+		}
+
 		public bool BroadcastMessage(byte[] data) {
 			return BroadcastMessage(localMessageBroadcastPartnerHandle, data, (UInt32) data.Length);
 		}

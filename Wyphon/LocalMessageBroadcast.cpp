@@ -159,12 +159,47 @@ namespace LocalMessageBroadcast {
 		//for receiving messages
 		__int32 currentReadBufferSize;
 		BYTE * readBuffer;
+
+		//for locking the maps, to protect them from concurrent access
+		HANDLE hMutex;
 	};
 
 
 
+	/**
+	 * These functions are used to lock the maps to avoid concurrent access (callbacks could happen at the same time as someone asks for a partnerId linked to a name for example) 
+	 * INFINITE can be given as the timeout
+	 */
+	bool LockMaps( LocalMessageBroadcastPartnerDescriptor * pLocalMessageBroadcastPartner, unsigned __int32 timeoutInMilliseconds ) {
+		if ( pLocalMessageBroadcastPartner->hMutex != NULL ) {
+//			std::wcout << "	-> Try to lock mutex " << "\n";
 
-	
+			DWORD waitResult = WaitForSingleObject( pLocalMessageBroadcastPartner->hMutex, timeoutInMilliseconds );
+
+			switch ( waitResult ) {
+				case WAIT_OBJECT_0:
+	//				std::wcout << "	-> Locked mutex " << "\n";
+					return true;
+					break;
+				case WAIT_ABANDONED:
+				default:
+					break;
+			}
+		}
+		return false;
+	}
+
+	bool UnlockMaps( LocalMessageBroadcastPartnerDescriptor * pLocalMessageBroadcastPartner ) {
+//		std::wcout << "	-> Try to unlock mutex with handle " << pSharedMemory->hMutex << " " << pSharedMemory->semaphoreLocked << "\n";
+		if ( pLocalMessageBroadcastPartner->hMutex != NULL  ) {
+//			std::wcout << "	-> Try to unlock mutex" << pSharedMemory->semaphoreLocked << "\n";
+			if ( ReleaseMutex( pLocalMessageBroadcastPartner->hMutex ) ) {
+//				std::wcout << "	-> Unlocked mutex "  << "\n";
+				return true;
+			}
+		}
+		return false;
+	}
 	
 
 
@@ -197,7 +232,7 @@ namespace LocalMessageBroadcast {
 			}
 			if ( ids[i] > maxId ) {
 				maxId = ids[i];
-			}			
+			}
 			//wcout << "ids[" << j << "] = " << ids[j] << " AND emptySpotPosition = " << emptySpotPosition << "\n";
 		}
 		if ( pos == -1 && nrOfIds < LOCAL_MSG_BROADCAST_MAX_NUMBER_OF_PARTNERS ) {
@@ -218,15 +253,23 @@ namespace LocalMessageBroadcast {
 	/// Closes and removes 1 single file handle for writing to partner mailslots
 	bool DestroyWriterMailslot(LocalMessageBroadcastPartnerDescriptor * pLocalMessageBroadcastPartner, unsigned __int32 myId) {
 		
-		map<unsigned __int32, HANDLE> * handlesMap = pLocalMessageBroadcastPartner->writerMailslotHandlesMap;
-		map<unsigned __int32, wstring> * namesMap = pLocalMessageBroadcastPartner->partnerNamesMap;
+		if ( LockMaps( pLocalMessageBroadcastPartner, 500 ) ) {
+			try {
+				map<unsigned __int32, HANDLE> * handlesMap = pLocalMessageBroadcastPartner->writerMailslotHandlesMap;
+				map<unsigned __int32, wstring> * namesMap = pLocalMessageBroadcastPartner->partnerNamesMap;
 	
-		CloseHandle( (*handlesMap)[myId] );
+				CloseHandle( (*handlesMap)[myId] );
 		
-		handlesMap->erase(myId);
-		namesMap->erase(myId);
-		
-		return true;
+				handlesMap->erase(myId);
+				namesMap->erase(myId);
+			}
+			finally {
+				UnlockMaps( pLocalMessageBroadcastPartner );
+			}
+			return true;
+		}
+
+		return false;
 	}
 
 
@@ -234,28 +277,36 @@ namespace LocalMessageBroadcast {
 	/// Closes and removes file handles for writing to the partner mailslots
 	bool DestroyWriterMailslots(LocalMessageBroadcastPartnerDescriptor * pLocalMessageBroadcastPartner) {
 		
-		map<unsigned __int32, HANDLE>::const_iterator itr;
+		if ( LockMaps( pLocalMessageBroadcastPartner, 500 ) ) {
+			try {
+				map<unsigned __int32, HANDLE>::const_iterator itr;
 		
-		for( itr = pLocalMessageBroadcastPartner->writerMailslotHandlesMap->begin(); itr != pLocalMessageBroadcastPartner->writerMailslotHandlesMap->end(); ++itr ) {
-			//wcout << "writerMailslotId: " << (*itr).first << " Handle: " << (*itr).second;
+				for( itr = pLocalMessageBroadcastPartner->writerMailslotHandlesMap->begin(); itr != pLocalMessageBroadcastPartner->writerMailslotHandlesMap->end(); ++itr ) {
+					//wcout << "writerMailslotId: " << (*itr).first << " Handle: " << (*itr).second;
 			
-			CloseHandle( itr->second );
+					CloseHandle( itr->second );
+				}
+		
+				pLocalMessageBroadcastPartner->writerMailslotHandlesMap->clear();
+				pLocalMessageBroadcastPartner->partnerNamesMap->clear();
+		
+		//		while ( pLocalMessageBroadcastPartner->hWriterMailslotList.front() != NULL ) {
+		//			HANDLE hFile = pLocalMessageBroadcastPartner->hWriterMailslotList.front();
+		//
+		//			CloseHandle(hFile);
+		//			
+		//			pLocalMessageBroadcastPartner->hWriterMailslotList.pop_front();
+		//		}
+		//		
+		//		pLocalMessageBroadcastPartner->hWriterMailslotList.clear();
+			}
+			finally {
+				UnlockMaps( pLocalMessageBroadcastPartner );
+			}
+			return true;
 		}
-		
-		pLocalMessageBroadcastPartner->writerMailslotHandlesMap->clear();
-		pLocalMessageBroadcastPartner->partnerNamesMap->clear();
-		
-//		while ( pLocalMessageBroadcastPartner->hWriterMailslotList.front() != NULL ) {
-//			HANDLE hFile = pLocalMessageBroadcastPartner->hWriterMailslotList.front();
-//
-//			CloseHandle(hFile);
-//			
-//			pLocalMessageBroadcastPartner->hWriterMailslotList.pop_front();
-//		}
-//		
-//		pLocalMessageBroadcastPartner->hWriterMailslotList.clear();
-		
-		return TRUE;
+
+		return false;
 	}
 
 
@@ -283,12 +334,19 @@ namespace LocalMessageBroadcast {
 			return false; 
 		}
 		
-		(*pLocalMessageBroadcastPartner->writerMailslotHandlesMap)[id] = hFile; 
+		if ( LockMaps( pLocalMessageBroadcastPartner, 500 ) ) {
+			try {
+				(*pLocalMessageBroadcastPartner->writerMailslotHandlesMap)[id] = hFile; 
+				//We don't know the name yet, so don't fill NamesMap yet...
+				////(*pLocalMessageBroadcastPartner->partnerNamesMap)[id] = *(new wstring());
+			}
+			finally {
+				UnlockMaps( pLocalMessageBroadcastPartner );
+			}
+			return true;
+		}
 		
-		//We don't know the name yet, so don't fill NamesMap yet...
-		////(*pLocalMessageBroadcastPartner->partnerNamesMap)[id] = *(new wstring());
-		
-		return true;
+		return false;
 	}
 
 
@@ -354,29 +412,40 @@ namespace LocalMessageBroadcast {
 		
 		bool success = true;
 
-		if ( pLocalMessageBroadcastPartner->writerMailslotHandlesMap->count(partnerId) > 0 ) {
-			HANDLE hFile = pLocalMessageBroadcastPartner->writerMailslotHandlesMap->at(partnerId);
-			BOOL fResult;
-			DWORD cbWritten; 
+		if ( LockMaps( pLocalMessageBroadcastPartner, 500 ) ) {
+			try {
+				if ( pLocalMessageBroadcastPartner->writerMailslotHandlesMap->count(partnerId) > 0 ) {
+					HANDLE hFile = pLocalMessageBroadcastPartner->writerMailslotHandlesMap->at(partnerId);
+					BOOL fResult;
+					DWORD cbWritten; 
 
-//		    	wcout << "Try to write to mailsot " << hFile << " aka " << itr->second << "\n";
+		//		    	wcout << "Try to write to mailsot " << hFile << " aka " << itr->second << "\n";
 			
-			fResult = WriteFile(hFile, data, len, &cbWritten, (LPOVERLAPPED) NULL);
+					fResult = WriteFile(hFile, data, len, &cbWritten, (LPOVERLAPPED) NULL);
 
-			if (!fResult) {
-				success = false;
-				printf("WriteFile failed with %d.\n", GetLastError()); 
+					if (!fResult) {
+						success = false;
+						printf("WriteFile failed with %d.\n", GetLastError()); 
+					}
+					else {
+						//printf("Slot written to successfully.\n"); 
+					}
+				}
+				else {
+		//		    wcout << "No partner mailslots found, so do nothing..." << "\n";WriteToAllMailslots
+					success = false;
+				}
 			}
-			else {
-				//printf("Slot written to successfully.\n"); 
+			finally {
+				UnlockMaps( pLocalMessageBroadcastPartner );
 			}
 		}
 		else {
-//		    wcout << "No partner mailslots found, so do nothing..." << "\n";WriteToAllMailslots
 			success = false;
 		}
-		
+			
 		return success;
+
 	}
 
 
@@ -387,48 +456,44 @@ namespace LocalMessageBroadcast {
 //	    wcout << "Trying pLocalMessageBroadcastPartner->writerMailslotHandlesMap->size()" << "\n";
 //	    wcout << pLocalMessageBroadcastPartner->writerMailslotHandlesMap->size() << "\n";
 
-		if ( pLocalMessageBroadcastPartner->writerMailslotHandlesMap->size() > 0 ) {
-			map<unsigned __int32, HANDLE>::iterator itr;
+		if ( LockMaps( pLocalMessageBroadcastPartner, 500 ) ) {
+			try {
+				if ( pLocalMessageBroadcastPartner->writerMailslotHandlesMap->size() > 0 ) {
+					map<unsigned __int32, HANDLE>::iterator itr;
 			
-//		    wcout << "Found " << pLocalMessageBroadcastPartner->writerMailslotHandlesMap->size() << " partners, so get an iterator and try to send the message to all of them." << "\n";
+		//		    wcout << "Found " << pLocalMessageBroadcastPartner->writerMailslotHandlesMap->size() << " partners, so get an iterator and try to send the message to all of them." << "\n";
 			
-			for ( itr = pLocalMessageBroadcastPartner->writerMailslotHandlesMap->begin(); itr != pLocalMessageBroadcastPartner->writerMailslotHandlesMap->end(); ++itr ) {
-				//don't write to your own mailslot
-				if (itr->first != pLocalMessageBroadcastPartner->myId) {
+					for ( itr = pLocalMessageBroadcastPartner->writerMailslotHandlesMap->begin(); itr != pLocalMessageBroadcastPartner->writerMailslotHandlesMap->end(); ++itr ) {
+						//don't write to your own mailslot
+						if (itr->first != pLocalMessageBroadcastPartner->myId) {
 				
-					wcout << "Try to write to partner " << itr->first << "'s mailsot aka " << itr->second << "\n";
-					if ( ! WriteToSingleMailslot(pLocalMessageBroadcastPartner, itr->first, data, len) ) {
-						success = false;
-						wcout << "failed !" << "\n";
-					}
-					else {
-						wcout << "success !" << "\n";
-					}
+							//wcout << "Try to write to partner " << itr->first << "'s mailsot aka " << itr->second << "\n";
+							if ( ! WriteToSingleMailslot(pLocalMessageBroadcastPartner, itr->first, data, len) ) {
+								success = false;
+								wcout << "failed !" << "\n";
+							}
+							else {
+								wcout << "success !" << "\n";
+							}
 					
-//					HANDLE hFile = itr->second;
-//					BOOL fResult;
-//					DWORD cbWritten; 
-//		
-//	//		    	wcout << "Try to write to mailsot " << hFile << " aka " << itr->second << "\n";
-//					
-//					fResult = WriteFile(hFile, data, len, &cbWritten, (LPOVERLAPPED) NULL);
-//		
-//					if (!fResult) {
-//						success = false;
-//						printf("WriteFile failed with %d.\n", GetLastError()); 
-//					}
-//					else {
-//						//printf("Slot written to successfully.\n"); 
-//					}
+						}
+						else {
+							//wcout << "Don't try to write to our own " << itr->first << " mailsot aka " << itr->second << "\n";
+						}
+					}
 				}
 				else {
-					//wcout << "Don't try to write to our own " << itr->first << " mailsot aka " << itr->second << "\n";
+		//		    wcout << "No partner mailslots found, so do nothing..." << "\n";			
 				}
+			}
+			finally {
+				UnlockMaps( pLocalMessageBroadcastPartner );
 			}
 		}
 		else {
-//		    wcout << "No partner mailslots found, so do nothing..." << "\n";			
+			success = false;
 		}
+
 		
 		return success;
 	}
@@ -527,117 +592,136 @@ namespace LocalMessageBroadcast {
 	bool ProcessReceivedHelloMessage( LocalMessageBroadcastPartnerDescriptor * pLocalMessageBroadcastPartner, BYTE * data, __int32 length ) {
 		bool success = true;
 
-		//parse the message
-		///////////////////
-		BYTE * pData = data + 1;
-		unsigned __int32 partnerId = *((unsigned __int32 *)pData);
-		
-		pData += sizeof(partnerId);
-		unsigned __int32 name_length = *((unsigned __int32 *)pData);
-		
-		pData += sizeof(unsigned __int32);
-		wchar_t * name = (wchar_t*)pData;
-
-		//wcout << "The new message partnerId = " << partnerId << " and name has length " << name_length << "\n";
-
-		wstring wstrName(L"");
-		wstrName.append( name, name_length );
-		
-		//wcout << " and name = " << wstrName << "\n";
-
-		// Add to the list of known partners: update the writerMailslotsMap
-		///////////////////////////////////////////////////////////////////
-
-		//find and open the mailslot and store its handle
-		if ( ! CreateWriterMailslot( pLocalMessageBroadcastPartner, partnerId ) ) {
-			success = false;
-		}
-		
-		map<unsigned __int32, wstring> * namesMap = pLocalMessageBroadcastPartner->partnerNamesMap;
-
-		//(*handlesMap)[partnerId]
-		((*namesMap)[partnerId]).clear(); //clear the current name for the mailslot string
-		(*namesMap)[partnerId].append( name, name_length );
-		
-		//wcout << "The new message partnerId = " << partnerId << " and name " << (*namesMap)[partnerId] <<  " (length=" << name_length << ")" << "\n";
-
-
-		// Send back a 'welcome' message, so the new partner knows our name
-		///////////////////////////////////////////////////////////////////
-		
-		// (a welcome message is just a hello message with a different msgType)
-		map<unsigned __int32, HANDLE> * handlesMap = pLocalMessageBroadcastPartner->writerMailslotHandlesMap;
-		HANDLE hPartnerMailslot = (*handlesMap)[partnerId];
-
-		BYTE * welcomeMsgData;
-		__int32 welcomeMsgDataSize = CreateHelloMessage(pLocalMessageBroadcastPartner, &welcomeMsgData);
-		welcomeMsgData[0] = LOCAL_MSG_BROADCAST_WELCOME;
-		
-
-		DWORD cbWritten;
-		BOOL fResult = WriteFile(hPartnerMailslot, welcomeMsgData, welcomeMsgDataSize, &cbWritten, (LPOVERLAPPED) NULL);
-
-		if (!fResult) {
-			success = false;
-			printf("WriteFile failed with %d.\n", GetLastError()); 
-		}
-		else {
-			//printf("Slot written to successfully.\n"); 
-		}
-
-		//call the callback function
-		if ( pLocalMessageBroadcastPartner->partnerJoinedCallbackFunc != NULL ) {
+		if ( LockMaps( pLocalMessageBroadcastPartner, 500 ) ) {
 			try {
-				(*(pLocalMessageBroadcastPartner->partnerJoinedCallbackFunc))(pLocalMessageBroadcastPartner, partnerId, wstrName.c_str(), pLocalMessageBroadcastPartner->callbackFuncCustomData);
-			} catch (exception) {
+				//parse the message
+				///////////////////
+				BYTE * pData = data + 1;
+				unsigned __int32 partnerId = *((unsigned __int32 *)pData);
+		
+				pData += sizeof(partnerId);
+				unsigned __int32 name_length = *((unsigned __int32 *)pData);
+		
+				pData += sizeof(unsigned __int32);
+				wchar_t * name = (wchar_t*)pData;
+
+				//wcout << "The new message partnerId = " << partnerId << " and name has length " << name_length << "\n";
+
+				wstring wstrName(L"");
+				wstrName.append( name, name_length );
+		
+				//wcout << " and name = " << wstrName << "\n";
+
+				// Add to the list of known partners: update the writerMailslotsMap
+				///////////////////////////////////////////////////////////////////
+
+				//find and open the mailslot and store its handle
+				if ( ! CreateWriterMailslot( pLocalMessageBroadcastPartner, partnerId ) ) {
+					success = false;
+				}
+		
+				map<unsigned __int32, wstring> * namesMap = pLocalMessageBroadcastPartner->partnerNamesMap;
+
+				//(*handlesMap)[partnerId]
+				((*namesMap)[partnerId]).clear(); //clear the current name for the mailslot string
+				(*namesMap)[partnerId].append( name, name_length );
+		
+				//wcout << "The new message partnerId = " << partnerId << " and name " << (*namesMap)[partnerId] <<  " (length=" << name_length << ")" << "\n";
+
+
+				// Send back a 'welcome' message, so the new partner knows our name
+				///////////////////////////////////////////////////////////////////
+		
+				// (a welcome message is just a hello message with a different msgType)
+				map<unsigned __int32, HANDLE> * handlesMap = pLocalMessageBroadcastPartner->writerMailslotHandlesMap;
+				HANDLE hPartnerMailslot = (*handlesMap)[partnerId];
+
+				BYTE * welcomeMsgData;
+				__int32 welcomeMsgDataSize = CreateHelloMessage(pLocalMessageBroadcastPartner, &welcomeMsgData);
+				welcomeMsgData[0] = LOCAL_MSG_BROADCAST_WELCOME;
+		
+
+				DWORD cbWritten;
+				BOOL fResult = WriteFile(hPartnerMailslot, welcomeMsgData, welcomeMsgDataSize, &cbWritten, (LPOVERLAPPED) NULL);
+
+				if (!fResult) {
+					success = false;
+					printf("WriteFile failed with %d.\n", GetLastError()); 
+				}
+				else {
+					//printf("Slot written to successfully.\n"); 
+				}
+
+				//call the callback function
+				if ( pLocalMessageBroadcastPartner->partnerJoinedCallbackFunc != NULL ) {
+					try {
+						(*(pLocalMessageBroadcastPartner->partnerJoinedCallbackFunc))(pLocalMessageBroadcastPartner, partnerId, wstrName.c_str(), pLocalMessageBroadcastPartner->callbackFuncCustomData);
+					} catch (exception) {
+					}
+				}
+			}
+			finally {
+				UnlockMaps( pLocalMessageBroadcastPartner );
 			}
 		}
-		
+		else {
+			success = false;
+		}
+
 		return success;
 	}
 
 	/// Add this partner to the list of known partners
 	bool ProcessReceivedWelcomeMessage( LocalMessageBroadcastPartnerDescriptor * pLocalMessageBroadcastPartner, BYTE * data, __int32 length ) {
 		bool success = true;
-
-		//parse the message
-		///////////////////
-		BYTE * pData = data + 1;
-		unsigned __int32 partnerId = *((unsigned __int32 *)pData);
-		
-		pData += sizeof(partnerId);
-		unsigned __int32 name_length = *((unsigned __int32 *)pData);
-		
-		pData += sizeof(unsigned __int32);
-		wchar_t * name = (wchar_t*)pData;
-
-		//wcout << "The new message partnerId = " << partnerId << " and name has length " << name_length << "\n";
-
-		wstring wstrName(L"");
-		wstrName.append( name, name_length );
-		
-		//wcout << " and name = " << wstrName << "\n";
-
-		// Add to the list of known partners: update the writerMailslotsMap
-		///////////////////////////////////////////////////////////////////
-		map<unsigned __int32, wstring> * namesMap = pLocalMessageBroadcastPartner->partnerNamesMap;
-
-		//find and open the mailslot and store its handle
-		if ( ! CreateWriterMailslot( pLocalMessageBroadcastPartner, partnerId ) ) {
-			success = false;
-		}
-		
-		((*namesMap)[partnerId]).clear(); //clear the current name for the mailslot string
-		(*namesMap)[partnerId].append( name, name_length );
-		
-//		wcout << "The new message partnerId = " << partnerId << " and name " << (*namesMap)[partnerId] <<  " (length=" << name_length << ")" << "\n";
-
-		//call the callback function
-		if ( pLocalMessageBroadcastPartner->partnerJoinedCallbackFunc != NULL ) {
+		if ( LockMaps( pLocalMessageBroadcastPartner, 500 ) ) {
 			try {
-				(*(pLocalMessageBroadcastPartner->partnerJoinedCallbackFunc))(pLocalMessageBroadcastPartner, partnerId, wstrName.c_str(), pLocalMessageBroadcastPartner->callbackFuncCustomData);
-			} catch (exception) {
+				//parse the message
+				///////////////////
+				BYTE * pData = data + 1;
+				unsigned __int32 partnerId = *((unsigned __int32 *)pData);
+		
+				pData += sizeof(partnerId);
+				unsigned __int32 name_length = *((unsigned __int32 *)pData);
+		
+				pData += sizeof(unsigned __int32);
+				wchar_t * name = (wchar_t*)pData;
+
+				//wcout << "The new message partnerId = " << partnerId << " and name has length " << name_length << "\n";
+
+				wstring wstrName(L"");
+				wstrName.append( name, name_length );
+		
+				//wcout << " and name = " << wstrName << "\n";
+
+				// Add to the list of known partners: update the writerMailslotsMap
+				///////////////////////////////////////////////////////////////////
+				map<unsigned __int32, wstring> * namesMap = pLocalMessageBroadcastPartner->partnerNamesMap;
+
+				//find and open the mailslot and store its handle
+				if ( ! CreateWriterMailslot( pLocalMessageBroadcastPartner, partnerId ) ) {
+					success = false;
+				}
+		
+				((*namesMap)[partnerId]).clear(); //clear the current name for the mailslot string
+				(*namesMap)[partnerId].append( name, name_length );
+		
+		//		wcout << "The new message partnerId = " << partnerId << " and name " << (*namesMap)[partnerId] <<  " (length=" << name_length << ")" << "\n";
+
+				//call the callback function
+				if ( pLocalMessageBroadcastPartner->partnerJoinedCallbackFunc != NULL ) {
+					try {
+						(*(pLocalMessageBroadcastPartner->partnerJoinedCallbackFunc))(pLocalMessageBroadcastPartner, partnerId, wstrName.c_str(), pLocalMessageBroadcastPartner->callbackFuncCustomData);
+					} catch (exception) {
+					}
+				}
 			}
+			finally {
+				UnlockMaps( pLocalMessageBroadcastPartner );
+			}
+		}
+		else {
+			success = false;
 		}
 
 		return success;
@@ -648,24 +732,36 @@ namespace LocalMessageBroadcast {
 	bool ProcessReceivedGoodbyeMessage( LocalMessageBroadcastPartnerDescriptor * pLocalMessageBroadcastPartner, BYTE * data, __int32 length ) {
 		bool success = true;
 
-		//parse the message
-		///////////////////
-		BYTE * pData = data + 1;
-		unsigned __int32 partnerId = *((unsigned __int32 *)pData);
-		
-		
-		//call the callback function
-		if ( pLocalMessageBroadcastPartner->partnerLeftCallbackFunc != NULL ) {
+
+		if ( LockMaps( pLocalMessageBroadcastPartner, 500 ) ) {
 			try {
-				(*(pLocalMessageBroadcastPartner->partnerLeftCallbackFunc))(pLocalMessageBroadcastPartner, partnerId, pLocalMessageBroadcastPartner->callbackFuncCustomData);
-			} catch (exception) {
-			}
-		}
+
+				//parse the message
+				///////////////////
+				BYTE * pData = data + 1;
+				unsigned __int32 partnerId = *((unsigned __int32 *)pData);
+		
+		
+				//call the callback function
+				if ( pLocalMessageBroadcastPartner->partnerLeftCallbackFunc != NULL ) {
+					try {
+						(*(pLocalMessageBroadcastPartner->partnerLeftCallbackFunc))(pLocalMessageBroadcastPartner, partnerId, pLocalMessageBroadcastPartner->callbackFuncCustomData);
+					} catch (exception) {
+					}
+				}
 
 		
-		// Remove from the list of known partners
-		/////////////////////////////////////////
-		DestroyWriterMailslot( pLocalMessageBroadcastPartner, partnerId );
+				// Remove from the list of known partners
+				/////////////////////////////////////////
+				DestroyWriterMailslot( pLocalMessageBroadcastPartner, partnerId );
+			}
+			finally {
+				UnlockMaps( pLocalMessageBroadcastPartner );
+			}
+		}
+		else {
+			success = false;
+		}
 
 		return success;
 	}
@@ -958,6 +1054,15 @@ namespace LocalMessageBroadcast {
 		}
 		
 		
+		__int32 nameForSemaphoreLength = _tcslen( myName ) + 8 * sizeof( TCHAR );
+		LPTSTR nameForSemaphore = new TCHAR[ nameForSemaphoreLength ];
+		_tcscpy_s( nameForSemaphore, nameForSemaphoreLength, myName );
+		_tcscat_s( nameForSemaphore, nameForSemaphoreLength, _TEXT("_SEM") );
+
+		//create an unnamed mutex
+		pLocalMessageBroadcastPartner->hMutex = CreateMutex( NULL, false, NULL );
+
+
 //		wcout << "hSharedMemory = " << pLocalMessageBroadcastPartner->hSharedMemory << "\n";
 
 //		wcout << "CreateLocalMessageBroadcast returned " << pLocalMessageBroadcastPartner->hSharedMemory << "\n";
@@ -1157,8 +1262,17 @@ namespace LocalMessageBroadcast {
 	extern "C" _declspec(dllexport)
 	LPCTSTR GetBroadcastPartnerName(HANDLE localMessageBroadcastPartnerHandle, unsigned __int32 partnerId) {
 		LocalMessageBroadcastPartnerDescriptor * pLocalMessageBroadcastPartner = (LocalMessageBroadcastPartnerDescriptor *) localMessageBroadcastPartnerHandle;
+		
+		if ( LockMaps( pLocalMessageBroadcastPartner, 500 ) ) {
+			try {
+				return (*(pLocalMessageBroadcastPartner->partnerNamesMap))[partnerId].c_str();
+			}
+			finally {
+				UnlockMaps( pLocalMessageBroadcastPartner );
+			}
+		}
 
-		return (*(pLocalMessageBroadcastPartner->partnerNamesMap))[partnerId].c_str();
+		return TEXT( "[Error] Thread needed too much time to access mutexed resources." );
 	}
 
 	extern "C" _declspec(dllexport)
