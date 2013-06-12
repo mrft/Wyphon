@@ -166,6 +166,12 @@ namespace LocalMessageBroadcast {
 
 
 
+
+
+	void CleanupOtherPartner( LocalMessageBroadcastPartnerDescriptor * pLocalMessageBroadcastPartner, unsigned __int32 partnerId ); //see below for implementation
+
+
+
 	/**
 	 * These functions are used to lock the maps to avoid concurrent access (callbacks could happen at the same time as someone asks for a partnerId linked to a name for example) 
 	 * INFINITE can be given as the timeout
@@ -423,9 +429,9 @@ namespace LocalMessageBroadcast {
 			
 					fResult = WriteFile(hFile, data, len, &cbWritten, (LPOVERLAPPED) NULL);
 
-					if (!fResult) {
+					if ( ! fResult ) {
 						success = false;
-						printf("WriteFile failed with %d.\n", GetLastError()); 
+						printf( "WriteFile failed with %d.\n", GetLastError() ); 
 					}
 					else {
 						//printf("Slot written to successfully.\n"); 
@@ -452,6 +458,7 @@ namespace LocalMessageBroadcast {
 	bool WriteToAllMailslots(LocalMessageBroadcastPartnerDescriptor * pLocalMessageBroadcastPartner, BYTE * data, __int32 len) {
 		
 		bool success = true;
+		list<unsigned __int32> failedPartnerIds;
 
 //	    wcout << "Trying pLocalMessageBroadcastPartner->writerMailslotHandlesMap->size()" << "\n";
 //	    wcout << pLocalMessageBroadcastPartner->writerMailslotHandlesMap->size() << "\n";
@@ -465,15 +472,17 @@ namespace LocalMessageBroadcast {
 			
 					for ( itr = pLocalMessageBroadcastPartner->writerMailslotHandlesMap->begin(); itr != pLocalMessageBroadcastPartner->writerMailslotHandlesMap->end(); ++itr ) {
 						//don't write to your own mailslot
-						if (itr->first != pLocalMessageBroadcastPartner->myId) {
+						if ( itr->first != pLocalMessageBroadcastPartner->myId ) {
 				
 							//wcout << "Try to write to partner " << itr->first << "'s mailsot aka " << itr->second << "\n";
-							if ( ! WriteToSingleMailslot(pLocalMessageBroadcastPartner, itr->first, data, len) ) {
+							if ( ! WriteToSingleMailslot(pLocalMessageBroadcastPartner, itr->first, data, len ) ) {
+								failedPartnerIds.push_back( itr->first );
 								success = false;
-								wcout << "failed !" << "\n";
+								
+								//wcout << "failed !" << "\n";
 							}
 							else {
-								wcout << "success !" << "\n";
+								//wcout << "success !" << "\n";
 							}
 					
 						}
@@ -494,7 +503,21 @@ namespace LocalMessageBroadcast {
 			success = false;
 		}
 
-		
+
+		if ( failedPartnerIds.size() > 0 ) {
+			list<unsigned __int32>::iterator itr;
+
+			for ( itr = failedPartnerIds.begin(); itr != failedPartnerIds.end(); ++itr ) {
+			    wcout << "It seems that partner with id=" << (*itr) << " has left without saying goodbye. How rude..." << "\n";			
+				wcout.flush();
+
+				///////////////////////////////////////////////////////////
+				// let everyone ekse know that this partner has left !!! //
+				///////////////////////////////////////////////////////////
+				CleanupOtherPartner( pLocalMessageBroadcastPartner, *itr );
+			}
+		}
+
 		return success;
 	}
 
@@ -538,21 +561,39 @@ namespace LocalMessageBroadcast {
 		return dataSize;
 	}
 
+	/// data should be deleted afterwards by the caller !!!
+	/// BYTE msgType ; HANDLE partnerId
+	__int32 CreateGoodbyeMessage(LocalMessageBroadcastPartnerDescriptor * pLocalMessageBroadcastPartner, BYTE ** data, unsigned __int32 leavingPartnerId ) {
+
+		__int32 dataSize = 1 + sizeof( leavingPartnerId );
+		(*data) = new BYTE[dataSize];
+		(*data)[0] = LOCAL_MSG_BROADCAST_GOODBYE;
+
+		BYTE * addr = (*data) + 1;
+		__int32 len = sizeof( leavingPartnerId );
+		CopyMemory( addr, (VOID *) &leavingPartnerId, len );
+		addr += len;
+		
+		return dataSize;
+	}
+
 
 	/// data should be deleted afterwards by the caller !!!
 	/// BYTE msgType ; HANDLE partnerId
 	__int32 CreateGoodbyeMessage(LocalMessageBroadcastPartnerDescriptor * pLocalMessageBroadcastPartner, BYTE ** data ) {
 
-		__int32 dataSize = 1 + sizeof(pLocalMessageBroadcastPartner->myId);
-		(*data) = new BYTE[dataSize];
-		(*data)[0] = LOCAL_MSG_BROADCAST_GOODBYE;
+		return CreateGoodbyeMessage( pLocalMessageBroadcastPartner, data, pLocalMessageBroadcastPartner->myId );
 
-		BYTE * addr = (*data) + 1;
-		__int32 len = sizeof(pLocalMessageBroadcastPartner->myId);
-		CopyMemory( addr, (VOID *) &pLocalMessageBroadcastPartner->myId, len );
-		addr += len;
-		
-		return dataSize;
+		//__int32 dataSize = 1 + sizeof(pLocalMessageBroadcastPartner->myId);
+		//(*data) = new BYTE[dataSize];
+		//(*data)[0] = LOCAL_MSG_BROADCAST_GOODBYE;
+
+		//BYTE * addr = (*data) + 1;
+		//__int32 len = sizeof(pLocalMessageBroadcastPartner->myId);
+		//CopyMemory( addr, (VOID *) &pLocalMessageBroadcastPartner->myId, len );
+		//addr += len;
+		//
+		//return dataSize;
 	}
 
 
@@ -804,6 +845,66 @@ namespace LocalMessageBroadcast {
 	}
 
 
+	bool RemoveIdFromSharedMemory( LocalMessageBroadcastPartnerDescriptor * pLocalMessageBroadcastPartner, unsigned __int32 idToBeRemoved ) {
+		
+		bool success = false;
+
+		if ( LockSharedMemory( pLocalMessageBroadcastPartner->hSharedMemory, 2000 ) ) {
+
+//			wcout << "Trying to read shared memory" << "\n";
+			
+			BYTE * idBytes = NULL;
+			__int32 nrOfIds = ReadSharedMemory( pLocalMessageBroadcastPartner->hSharedMemory, idBytes ) / sizeof(unsigned __int32);
+			unsigned __int32 * ids = (unsigned __int32 *)idBytes;
+
+			//find ourself in shareddata
+			__int32 ourPosition = -1;
+
+			for ( __int32 i = 0; i < nrOfIds; i++ ) {
+				if ( ids[i] == idToBeRemoved ) {
+					ourPosition = i;
+				}
+			}
+
+//			wcout << "delete read bytes" << "\n";
+			delete idBytes;
+
+//			wcout << "Trying to write to shared memory at position " << ourPosition << "\n";
+
+			unsigned __int32 zero = 0;
+			//Remove yourself from the list
+			WriteSharedMemory( 	pLocalMessageBroadcastPartner->hSharedMemory, 
+								(BYTE*) &zero,							//data
+								sizeof(unsigned __int32),				//length
+								ourPosition * sizeof(unsigned __int32)	//offset								
+							);
+			
+			success = UnlockSharedMemory( pLocalMessageBroadcastPartner->hSharedMemory );
+		}
+
+		return success;
+	}
+
+	/**
+     * Remove a partner from sharedMemory and tell all the partners that he faded away
+     * (possibly after we could not deliver a message)
+     */
+    void CleanupOtherPartner( LocalMessageBroadcastPartnerDescriptor * pLocalMessageBroadcastPartner, unsigned __int32 partnerId ) {
+        // Cleanup shared memory
+		RemoveIdFromSharedMemory( pLocalMessageBroadcastPartner, partnerId );
+
+
+        BYTE * data;
+        __int32 dataSize = CreateGoodbyeMessage( pLocalMessageBroadcastPartner, &data, partnerId );
+
+		// simulate "write to own mailslot", we want to cleanup our data as well
+        ProcessReceivedGoodbyeMessage( pLocalMessageBroadcastPartner, data, dataSize );
+
+		// tell all other partners that this partner died
+        WriteToAllMailslots( pLocalMessageBroadcastPartner, (BYTE *) data, dataSize );
+        
+    }
+
 
 	//THIS THREAD WILL BE READING THE MAILSLOT, and calling callback functions when needed
 	void ListenerThread( void* pLocalMessageBroadcastPartnerHandle ) {
@@ -950,44 +1051,46 @@ namespace LocalMessageBroadcast {
 
 //		wcout << "Trying to LockSharedMemory" << "\n";
 
-		if ( LockSharedMemory( pLocalMessageBroadcastPartner->hSharedMemory, 2000 ) ) {
-//			wcout << "Trying to DestroyReaderMailslot" << "\n";
+//		wcout << "Trying to DestroyReaderMailslot" << "\n";
 
-			//close readermailslot: stop listening to new messages
-			DestroyReaderMailslot(pLocalMessageBroadcastPartner);
+		//close readermailslot: stop listening to new messages
+		DestroyReaderMailslot(pLocalMessageBroadcastPartner);
 
+//		if ( LockSharedMemory( pLocalMessageBroadcastPartner->hSharedMemory, 2000 ) ) {
 
-//			wcout << "Trying to read shared memory" << "\n";
-			
-			BYTE * idBytes = NULL;
-			__int32 nrOfIds = ReadSharedMemory( pLocalMessageBroadcastPartner->hSharedMemory, idBytes ) / sizeof(unsigned __int32);
-			unsigned __int32 * ids = (unsigned __int32 *)idBytes;
+			success = RemoveIdFromSharedMemory( pLocalMessageBroadcastPartner, pLocalMessageBroadcastPartner->myId );
 
-			//find ourself in shareddata
-			__int32 ourPosition = -1;
-
-			for ( __int32 i = 0; i < nrOfIds; i++ ) {
-				if ( ids[i] == pLocalMessageBroadcastPartner->myId ) {
-					ourPosition = i;
-				}
-			}
-
-//			wcout << "delete read bytes" << "\n";
-			delete idBytes;
-
-//			wcout << "Trying to write to shared memory at position " << ourPosition << "\n";
-
-			unsigned __int32 zero = 0;
-			//Remove yourself from the list
-			WriteSharedMemory( 	pLocalMessageBroadcastPartner->hSharedMemory, 
-								(BYTE*) &zero,						//data
-								sizeof(unsigned __int32),				//length
-								ourPosition * sizeof(unsigned __int32)	//offset								
-							);
-			
-
-			success = UnlockSharedMemory(pLocalMessageBroadcastPartner->hSharedMemory);
-		}
+////			wcout << "Trying to read shared memory" << "\n";
+//			
+//			BYTE * idBytes = NULL;
+//			__int32 nrOfIds = ReadSharedMemory( pLocalMessageBroadcastPartner->hSharedMemory, idBytes ) / sizeof(unsigned __int32);
+//			unsigned __int32 * ids = (unsigned __int32 *)idBytes;
+//
+//			//find ourself in shareddata
+//			__int32 ourPosition = -1;
+//
+//			for ( __int32 i = 0; i < nrOfIds; i++ ) {
+//				if ( ids[i] == pLocalMessageBroadcastPartner->myId ) {
+//					ourPosition = i;
+//				}
+//			}
+//
+////			wcout << "delete read bytes" << "\n";
+//			delete idBytes;
+//
+////			wcout << "Trying to write to shared memory at position " << ourPosition << "\n";
+//
+//			unsigned __int32 zero = 0;
+//			//Remove yourself from the list
+//			WriteSharedMemory( 	pLocalMessageBroadcastPartner->hSharedMemory, 
+//								(BYTE*) &zero,						//data
+//								sizeof(unsigned __int32),				//length
+//								ourPosition * sizeof(unsigned __int32)	//offset								
+//							);
+//			
+//
+//			success = UnlockSharedMemory(pLocalMessageBroadcastPartner->hSharedMemory);
+//		}
 
 		
 		//Write a 'goodbye' message to all writermailslots
