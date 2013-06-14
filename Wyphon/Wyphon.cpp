@@ -558,6 +558,8 @@ namespace Wyphon {
 		
 		success = success && DestroyLocalMessageBroadcastPartner( pWyphonPartner->hLocalMessageBroadcastPartner );
 		pWyphonPartner->hLocalMessageBroadcastPartner = NULL;
+
+		success = success && ReleaseMutex( pWyphonPartner->hMutex );
 		
 
 //		wcout << "Wyphon: Trying to delete all memory that has been allocated..." << "\n";

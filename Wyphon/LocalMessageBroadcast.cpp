@@ -1109,10 +1109,13 @@ namespace LocalMessageBroadcast {
 //		wcout << "Trying to destroy writer mailslots" << "\n";
 
 		//close all writermailslots
-		DestroyWriterMailslots(pLocalMessageBroadcastPartner);
+		DestroyWriterMailslots( pLocalMessageBroadcastPartner );
 		
 		pLocalMessageBroadcastPartner->hSharedMemory = NULL;
 		
+
+		success = success && ReleaseMutex( pLocalMessageBroadcastPartner->hMutex );
+
 
 		//HANDLE hSharedMemory;
 		//wstring * myName;
