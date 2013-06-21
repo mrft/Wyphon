@@ -19,9 +19,12 @@ namespace WyphonUtils {
 	HRESULT ReleaseLinkedGLTexture(GLuint &out_GlTextureName, HANDLE &out_GlTextureHandle);
 
 	extern "C" _declspec(dllexport)
-	HRESULT LockGLTexture( HANDLE &GlTextureHandle);
+	HRESULT LockInteropObject(HANDLE &interopObjectHandle);
 	extern "C" _declspec(dllexport)
-	HRESULT UnlockGLTexture( HANDLE &GlTextureHandle);
+	HRESULT UnlockInteropObject(HANDLE &interopObjectHandle);
+
+	extern "C" _declspec(dllexport)
+	HRESULT CopyGLTexture( HANDLE hDevice, HANDLE hInteropObject, GLuint sourceTexture, GLuint targetTexture, int width, int height, BOOL bFlip = TRUE );
 
 	//public ref class WyphonUtils
 	//{

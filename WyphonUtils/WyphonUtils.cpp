@@ -2,7 +2,8 @@
 
 #include "stdafx.h"
 #include <set>
-#include "NVInterop.h"
+#include <map>
+#include "GLExtensions.h"
 
 using namespace System;
 
@@ -16,12 +17,17 @@ namespace WyphonUtils {
 
 	std::set<HANDLE> g_wyphonDeviceHandles;
 
+		// The Framebuffers for copying the texture
+	std::map<HANDLE, GLuint > g_FBO;
+
+	unsigned int m_GLExtSupported;
+
 	/**
 	 * Creates a new handle and adds it to the list of handles
 	 *
 	 * @return		HANDLE		the handle's value
 	 */
-	HANDLE generateNewHandle() {
+	HANDLE GenerateNewHandle() {
 		HANDLE wyphonDeviceHandle = (HANDLE) 1; // first handle
 		if ( g_wyphonDeviceHandles.size() > 0 ) { // increment handles
 			wyphonDeviceHandle = *(g_wyphonDeviceHandles.rbegin());
@@ -58,7 +64,9 @@ namespace WyphonUtils {
 		if ( g_GLDXInteropHandle != NULL ) {
 			return S_FALSE;
 		}
-		if ( !loadNvExt() ) {
+			// load WGL extension functions
+		m_GLExtSupported = loadGLExtensions();
+		if ( !(m_GLExtSupported & GLEXT_SUPPORT_NVINTEROP) ) {
 			// NVidia wglDXInterop is not supported
 			// - this is not critical (we do not throw an exception)
 			return S_FALSE;
@@ -168,8 +176,11 @@ namespace WyphonUtils {
 			// GL/DX Interop failed or not supported
 			// - this is not critical
 		}
+		HANDLE wyphonDeviceHandle = GenerateNewHandle();
+		g_FBO[wyphonDeviceHandle] = NULL;
+		glGenFramebuffersEXT(1, &g_FBO[wyphonDeviceHandle]);
 			// everything ok -> return new handle
-		return generateNewHandle();
+		return wyphonDeviceHandle;
 	}
 
 
@@ -184,6 +195,10 @@ namespace WyphonUtils {
 	extern "C" _declspec(dllexport)
 	HRESULT ReleaseDevice(HANDLE wyphonDeviceHandle) {
 		if ( CloseHandle(wyphonDeviceHandle) ) { // handle really existed
+				// free the fbo and remove it from list
+			glDeleteFramebuffersEXT(1, &g_FBO[wyphonDeviceHandle]);
+			g_FBO.erase(wyphonDeviceHandle);
+
 			if ( g_wyphonDeviceHandles.size() == 0 ) { // the last user left
 				if ( g_pDeviceD3D9ex_WyphonUtils != NULL ) {
 					g_pDeviceD3D9ex_WyphonUtils->Release();
@@ -250,13 +265,13 @@ namespace WyphonUtils {
 	/// @param	DWORD				usage of the new/shared texture (see MSDN IDirect3D9::CreateTexture)
 	/// @param	DWORD				format of the new/shared texture (see MSDN IDirect3D9::CreateTexture)
 	/// @param	HANDLE				NULL to create a new resource, a valid DirectX share handle to link to an existing texture
-	/// @param	GLuint				Will be set to the new OpenGl Texture Name
-	/// @param	HANDLE				Will be set to the new OpenGl Texture Handle
+	/// @param	GLuint				Will be set to the new OpenGl texture name
+	/// @param	HANDLE				Will be set to the new interop object's handle
 	/// 
 	/// @author		Elio
 	/// 
 	extern "C" _declspec(dllexport)
-	HRESULT CreateLinkedGLTexture(unsigned __int32 width, unsigned __int32 height, DWORD usage, DWORD format, HANDLE &DXShareHandle, GLuint &out_GlTextureName, HANDLE &out_GlTextureHandle) {
+	HRESULT CreateLinkedGLTexture(unsigned __int32 width, unsigned __int32 height, DWORD usage, DWORD format, HANDLE &DXShareHandle, GLuint &out_GlTextureName, HANDLE &out_interopObjectHandle) {
 		HRESULT hr = S_OK;
 
 		if ( wglDXCloseDeviceNV == NULL ) {
@@ -282,7 +297,7 @@ namespace WyphonUtils {
 		}
 
 			// register for interop and associate with dx texture
-		out_GlTextureHandle = wglDXRegisterObjectNV(g_GLDXInteropHandle, pD3D9Texture,
+		out_interopObjectHandle = wglDXRegisterObjectNV(g_GLDXInteropHandle, pD3D9Texture,
 			out_GlTextureName,
 			GL_TEXTURE_2D,
 			access);
@@ -290,7 +305,7 @@ namespace WyphonUtils {
 			 * this is not documented, but when carefully watching the variables, the pointer gets reset some time after without us doing anything
 			 */
 		DWORD e = GetLastError();
-		if ( !out_GlTextureHandle ) {
+		if ( !out_interopObjectHandle ) {
 			throw TEXT("Cannot link OpenGl to DX Texture. wglDXRegisterObjectNV() failed.");
 		}
 		
@@ -300,21 +315,21 @@ namespace WyphonUtils {
 	/// Release the shared GL-Texture previously created by CreateLinkedGLTexture
 	/// 
 	/// @param	GLuint		OpenGl Texture's Name
-	/// @param	HANDLE		OpenGl Texture's Handle
+	/// @param	HANDLE		Interop Object's Handle
 	/// 
 	/// @author		Elio
 	/// 
 	extern "C" _declspec(dllexport)
-	HRESULT ReleaseLinkedGLTexture(GLuint &out_GlTextureName, HANDLE &out_GlTextureHandle) {
+	HRESULT ReleaseLinkedGLTexture(GLuint &out_GlTextureName, HANDLE &interopObjectHandle) {
 		HRESULT hr = S_OK;
 
 		if ( wglDXCloseDeviceNV == NULL ) {
 			return S_FALSE;
 		}
 
-		if ( out_GlTextureHandle != NULL ) {
-			wglDXUnregisterObjectNV(g_GLDXInteropHandle, out_GlTextureHandle);
-			out_GlTextureHandle = NULL;
+		if ( interopObjectHandle != NULL ) {
+			wglDXUnregisterObjectNV(g_GLDXInteropHandle, interopObjectHandle);
+			interopObjectHandle = NULL;
 		}
 
 		glDeleteTextures(1, &out_GlTextureName);
@@ -324,15 +339,15 @@ namespace WyphonUtils {
 
 	/// Lock the shared OpenGL Texture prior to accessing it (reading or writing)
 	/// 
-	/// @param	HANDLE		OpenGl Texture Handle to lock
+	/// @param	HANDLE		Interop Object's Handle to lock
 	///
 	/// @author		Elio
 	/// 
 	extern "C" _declspec(dllexport)
-	HRESULT LockGLTexture(HANDLE &GlTextureHandle) {
+	HRESULT LockInteropObject(HANDLE &interopObjectHandle) {
 		HRESULT hr = S_OK;
 
-		if ( !wglDXLockObjectsNV(g_GLDXInteropHandle, 1, &GlTextureHandle) ) {
+		if ( !wglDXLockObjectsNV(g_GLDXInteropHandle, 1, &interopObjectHandle) ) {
 			throw TEXT("Cannot lock texture. wglDXLockObjectsNV() failed.");
 		}
 
@@ -341,21 +356,73 @@ namespace WyphonUtils {
 
 	/// Unlock the shared OpenGL Texture after accessing it (reading or writing)
 	/// 
-	/// @param	HANDLE		OpenGl Texture Handle to unlock
+	/// @param	HANDLE		Interop Object's Handle to unlock
 	///
 	/// @author		Elio
 	/// 
 	extern "C" _declspec(dllexport)
-	HRESULT UnlockGLTexture(HANDLE &GlTextureHandle) {
+	HRESULT UnlockInteropObject(HANDLE &interopObjectHandle) {
 		HRESULT hr = S_OK;
 
-		if ( !wglDXUnlockObjectsNV(g_GLDXInteropHandle, 1, &GlTextureHandle) ) {
+		if ( !wglDXUnlockObjectsNV(g_GLDXInteropHandle, 1, &interopObjectHandle) ) {
 			throw TEXT("Cannot lock texture. wglDXUnlockObjectsNV() failed.");
 		}
 
 		return hr;
 	}
 
+	/// Copy a non-shared OpenGL Texture to a shared texture or vice versa
+	///
+	/// Flipping the texture upside down is necessary in order to have coherent
+	/// texture origin in both, OpenGL and DirectX. Flipping is only supported,
+	/// if the graphics driver supports glBlitFramebufferEXT. 
+	/// 
+	/// @param	GLuint		the source texture's OpenGL handle
+	/// @param	GLuint		the target texture's OpenGL handle
+	/// @param	HANDLE		the interop object of the shared texture
+	/// @param	int			texture width
+	/// @param	int			texture height
+	/// @param	BOOL		indicated that the texture shall be flipped upside down
+	///						this accomodates for the different origin in DX and OpenGL Textures
+	///						TRUE (flip) by default
+	///
+	/// @author		Elio
+	/// 
+	extern "C" _declspec(dllexport)
+	HRESULT CopyGLTexture( HANDLE hDevice, HANDLE hInteropObject, GLuint sourceTexture, GLuint targetTexture, int width, int height, BOOL bFlip = TRUE ) {
+		HRESULT hr = S_OK;
+		if ( ! (m_GLExtSupported & GLEXT_SUPPORT_FBO) ) {
+			return S_FALSE;
+		}
+
+		WyphonUtils::LockInteropObject(hInteropObject);
+			// bind the FBO (for both, READ_FRAMEBUFFER_EXT and DRAW_FRAMEBUFFER_EXT)
+		glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, g_FBO[hDevice]);
+
+			// attach source texture to first attachment point
+		glFramebufferTexture2DEXT(READ_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT,
+			GL_TEXTURE_2D, sourceTexture, 0);
+		glReadBuffer(GL_COLOR_ATTACHMENT0_EXT);
+
+		if ( m_GLExtSupported & GLEXT_SUPPORT_FBO_BLIT ) { // blitting supported: we may flip the texture while copying
+				// attach target texture to second attachment point
+			glFramebufferTexture2DEXT(DRAW_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT1_EXT,
+				GL_TEXTURE_2D, targetTexture, 0);
+			glDrawBuffer(GL_COLOR_ATTACHMENT1_EXT);
+				// copy one texture buffer to the other while flipping upside down (OpenGL and DirectX have different texture origins)
+			glBlitFramebufferEXT(0, 0, width, height,
+						   0, bFlip ? height : 0, width, bFlip ? 0 : height,
+						   GL_COLOR_BUFFER_BIT,
+						   GL_NEAREST);
+		} else { // fallback: no blitting supported - directly copy to texture - in this case, texture cannot be flipped
+			glBindTexture(GL_TEXTURE_2D, targetTexture);
+			glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 0, 0,width, height);
+			glBindTexture(GL_TEXTURE_2D, 0);
+		}
+			// unbind FBO
+		glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
+			// unlock interop object
+		WyphonUtils::UnlockInteropObject(hInteropObject);
+		return hr;
+	}
 }
-
-
