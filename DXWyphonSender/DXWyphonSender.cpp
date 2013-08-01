@@ -9,19 +9,23 @@ using namespace WyphonUtils;
 LPDIRECT3D9EX d3d;    // the pointer to our Direct3D interface
 LPDIRECT3DDEVICE9EX d3ddev;    // the pointer to the device class
 IDirect3DTexture9* pD3D9Texture;
-IDirect3DSurface9* pD3D9Surface;
+IDirect3DSurface9 *pD3D9Surface, *pBackBuffer;
 HANDLE DXShareHandle;
 int width, height;
-LPDIRECT3DVERTEXBUFFER9 g_pVB = NULL; // Buffer to hold vertices
+LPDIRECT3DVERTEXBUFFER9 vbTriangle = NULL;
+LPDIRECT3DVERTEXBUFFER9 vbFullscreenQuad = NULL;
 
 // A structure for our custom vertex type
 struct CUSTOMVERTEX
 {
-    FLOAT x, y, z, rhw; // The transformed position for the vertex
+    FLOAT x, y, z; // The transformed position for the vertex
     DWORD color;        // The vertex color
 };
+
+DWORD startupTime;
+
 // Our custom FVF, which describes our custom vertex structure
-#define D3DFVF_CUSTOMVERTEX (D3DFVF_XYZRHW|D3DFVF_DIFFUSE)
+#define D3DFVF_CUSTOMVERTEX (D3DFVF_XYZ|D3DFVF_DIFFUSE)
 
 HANDLE							hWyphonPartner;
 HANDLE							hWyphonDevice;
@@ -47,8 +51,8 @@ int WINAPI WinMain(HINSTANCE hInstance,
     HWND hWnd;
     WNDCLASSEX wc;
 
-	width = 800;
-	height = 600;
+	width = 1920;
+	height = 1080;
 
     ZeroMemory(&wc, sizeof(WNDCLASSEX));
 
@@ -67,7 +71,7 @@ int WINAPI WinMain(HINSTANCE hInstance,
                           L"Our First Direct3D Program",
                           WS_OVERLAPPEDWINDOW,
                           300, 300,
-                          width, height,
+                          800, 600,
                           NULL,
                           NULL,
                           hInstance,
@@ -133,6 +137,9 @@ void initD3D(HWND hWnd)
     d3dpp.Windowed = TRUE;    // program windowed, not fullscreen
     d3dpp.SwapEffect = D3DSWAPEFFECT_DISCARD;    // discard old frames
     d3dpp.hDeviceWindow = hWnd;    // set the window to be used by Direct3D
+	d3dpp.BackBufferWidth = width;
+	d3dpp.BackBufferHeight = height;
+	d3dpp.BackBufferCount = 1;
 
 
     // create a device class using this information and the info from the d3dpp stuct
@@ -143,10 +150,9 @@ void initD3D(HWND hWnd)
                       &d3dpp,
 					  NULL,
                       &d3ddev);
-//	D3DXCreateRenderToSurface( d3ddev, width, height, D3DFMT_A8R8G8B8, FALSE, D3DFMT_D24S8, &RtsHelper );
 	HRESULT res = d3ddev->CreateTexture(width, height, 1, D3DUSAGE_RENDERTARGET, (D3DFORMAT) D3DFMT_A8R8G8B8, D3DPOOL_DEFAULT, &pD3D9Texture, &DXShareHandle);
 	pD3D9Texture->GetSurfaceLevel(0, &pD3D9Surface);
-	d3ddev->SetRenderTarget(0,pD3D9Surface);
+	d3ddev->GetRenderTarget(0,&pBackBuffer);
 
 	lstrcpyW( WyphonApplicationNameT, _T("myApplication") );
 	lstrcpyW( WyphonTextureDescriptionT, _T("myTexture") );
@@ -154,54 +160,100 @@ void initD3D(HWND hWnd)
 	hWyphonPartner = CreateWyphonPartner( WyphonApplicationNameT,NULL,NULL,NULL,NULL,NULL /* no callbacks */ );
 
 	BOOL bRes = ShareD3DTexture(hWyphonPartner, DXShareHandle, width, height, D3DFMT_A8R8G8B8, D3DUSAGE_RENDERTARGET, WyphonTextureDescriptionT);
-	if ( bRes ) {
+	if ( !bRes ) {
 		return;
 	}
 
-	CUSTOMVERTEX vertices[] =
-    {
-        { 150.0f,  50.0f, 0.5f, 1.0f, D3DCOLOR_XRGB(255, 0, 255), }, // x, y, z, rhw, color
-        { 250.0f, 250.0f, 0.5f, 1.0f, D3DCOLOR_XRGB(255, 0, 255), },
-        {  50.0f, 250.0f, 0.5f, 1.0f, D3DCOLOR_XRGB(0, 0, 255), },
+	CUSTOMVERTEX triangle[] = {
+        { 2.5f, -3.0f, 0.0f, D3DCOLOR_ARGB(70, 255, 0, 255), }, // x, y, z, rhw, color
+        { 0.0f, 3.0f, 0.0f, D3DCOLOR_ARGB(70, 255, 255, 0), },
+        { -2.5f, -3.0f, 0.0f, D3DCOLOR_ARGB(70, 0, 0, 255), },
+    };
+	CUSTOMVERTEX fullscreenQuad[] = {
+        { 0.0f,  0.0f, 0.0f, D3DCOLOR_XRGB(255, 0, 255), }, // x, y, z, rhw, color
+        { 1.0f, 0.0f, 0.0f, D3DCOLOR_XRGB(255, 0, 255), },
+        { 0.0f, 1.0f, 0.0f, D3DCOLOR_XRGB(255, 0, 255), },
+        { 1.0f, 1.0f, 0.0f, D3DCOLOR_XRGB(255, 0, 255), },
     };
 
-	// Create the vertex buffer. Here we are allocating enough memory
-    // (from the default pool) to hold all our 3 custom vertices. We also
-    // specify the FVF, so the vertex buffer knows what data it contains.
     d3ddev->CreateVertexBuffer( 3 * sizeof( CUSTOMVERTEX ),
                                                   0, D3DFVF_CUSTOMVERTEX,
-                                                  D3DPOOL_DEFAULT, &g_pVB, NULL );
+                                                  D3DPOOL_DEFAULT, &vbTriangle, NULL );
+    d3ddev->CreateVertexBuffer( 4 * sizeof( CUSTOMVERTEX ),
+                                                  0, D3DFVF_CUSTOMVERTEX,
+                                                  D3DPOOL_DEFAULT, &vbFullscreenQuad, NULL );
 
     // Now we fill the vertex buffer. To do this, we need to Lock() the VB to
     // gain access to the vertices. This mechanism is required becuase vertex
     // buffers may be in device memory.
-    VOID* pVertices;
-    g_pVB->Lock( 0, sizeof( vertices ), ( void** )&pVertices, 0 );
-    memcpy( pVertices, vertices, sizeof( vertices ) );
-    g_pVB->Unlock();
+    VOID *pTriangle, *pFullscreenQuad;
+    vbTriangle->Lock( 0, sizeof( triangle ), ( void** )&pTriangle, 0 );
+    memcpy( pTriangle, triangle, sizeof( triangle ) );
+    vbTriangle->Unlock();
+
+    vbFullscreenQuad->Lock( 0, sizeof( fullscreenQuad ), ( void** )&pFullscreenQuad, 0 );
+    memcpy( pFullscreenQuad, fullscreenQuad, sizeof( fullscreenQuad ) );
+    vbFullscreenQuad->Unlock();
+
+	d3ddev->SetRenderState(D3DRS_LIGHTING, FALSE);    // turn off the 3D lighting
+	d3ddev->SetRenderState(D3DRS_ALPHABLENDENABLE, TRUE);
+	startupTime = timeGetTime();
 }
 
 
 // this is the function used to render a single frame
 void render_frame(void)
 {
-	D3DVIEWPORT9 vp;
-    vp.Width = width;
-    vp.Height = height;
-    vp.MaxZ = 1.0f;
+	d3ddev->SetRenderTarget(0,pD3D9Surface);
+	d3ddev->BeginScene();    // begins the 3D scene
 
-    d3ddev->BeginScene();    // begins the 3D scene
+		// clear the window to a deep blue
+		d3ddev->Clear(0, NULL, D3DCLEAR_TARGET, D3DCOLOR_XRGB(0, 40, 100), 1.0f, 0);
 
-    // clear the window to a deep blue
-    d3ddev->Clear(0, NULL, D3DCLEAR_TARGET, D3DCOLOR_XRGB(0, 40, 100), 1.0f, 0);
+		d3ddev->SetTexture(0,NULL);
+		d3ddev->SetFVF( D3DFVF_CUSTOMVERTEX );
+		d3ddev->SetStreamSource( 0, vbTriangle, 0, sizeof( CUSTOMVERTEX ) );
 
-    // do 3D rendering on the back buffer here
+		D3DXMATRIX matView;    // the view transform matrix
+		D3DXMatrixLookAtLH(&matView,
+					   &D3DXVECTOR3 (0.0f, 0.0f, 10.0f),    // the camera position
+					   &D3DXVECTOR3 (0.0f, 0.0f, 0.0f),    // the look-at position
+					   &D3DXVECTOR3 (0.0f, 1.0f, 0.0f));    // the up direction
+		d3ddev->SetTransform(D3DTS_VIEW, &matView);    // set the view transform to matView
 
-	d3ddev->SetStreamSource( 0, g_pVB, 0, sizeof( CUSTOMVERTEX ) );
-    d3ddev->SetFVF( D3DFVF_CUSTOMVERTEX );
-    d3ddev->DrawPrimitive( D3DPT_TRIANGLELIST, 0, 1 );
+		D3DXMATRIX matProjection;    // the projection transform matrix
+		D3DXMatrixPerspectiveFovLH(&matProjection,
+							   D3DXToRadian(45),    // the horizontal field of view
+							   (FLOAT)width / (FLOAT)height,    // aspect ratio
+							   1.0f,    // the near view-plane
+							   100.0f);    // the far view-plane
+		d3ddev->SetTransform(D3DTS_PROJECTION, &matProjection);    // set the projection transform
 
-    d3ddev->EndScene();    // ends the 3D scene
+		D3DXMATRIX matTranslate, matRotate, matScale;
+		DWORD timeDiff = timeGetTime() - startupTime;
+		D3DXMatrixRotationZ(&matRotate, 3.14 * float(timeDiff) / 10000);
+		D3DXMatrixScaling(&matScale, 0.2f, 0.2f, 1.0f );
+		// setting this to 0.1 / 0.5 creates first flickering ("preferably" in fullscreen mode)
+		for ( float y = -10; y < 10; y+=0.1f ) {
+			for ( float x = -10; x < 10; x+=0.2f ) {
+				D3DXMatrixTranslation(&matTranslate, x, y, 0);
+				d3ddev->SetTransform(D3DTS_WORLD, &(matScale*matRotate*matTranslate));
+				d3ddev->DrawPrimitive( D3DPT_TRIANGLELIST, 0, 1 );
+			}
+		}
+
+    d3ddev->EndScene();
+
+
+	// render to screen
+	d3ddev->SetRenderTarget(0,pBackBuffer);
+	d3ddev->Clear(0, NULL, D3DCLEAR_TARGET | D3DCLEAR_ZBUFFER, D3DCOLOR_XRGB(0,0,0), 1.0f, 0);
+	d3ddev->BeginScene();
+		d3ddev->SetTexture(0,pD3D9Texture);
+		d3ddev->SetFVF( D3DFVF_CUSTOMVERTEX );
+		d3ddev->SetStreamSource(0,vbFullscreenQuad,0,sizeof(CUSTOMVERTEX));
+		d3ddev->DrawPrimitive(D3DPT_TRIANGLESTRIP,0,2);
+	d3ddev->EndScene();
 
     d3ddev->Present(NULL, NULL, NULL, NULL);   // displays the created frame on the screen
 }
@@ -211,7 +263,10 @@ void render_frame(void)
 void cleanD3D(void)
 {
 	DestroyWyphonPartner(hWyphonPartner);
-
+	pBackBuffer->Release();
+	pD3D9Surface->Release();
+	vbTriangle->Release();
+	vbFullscreenQuad->Release();
 	d3ddev->Release();    // close and release the 3D device
     d3d->Release();    // close and release Direct3D
 }

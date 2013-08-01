@@ -11,6 +11,7 @@
 
 #include <windows.h>
 #include <windowsx.h>
+#include <Mmsystem.h>
 
 // C RunTime Header Files
 #include <stdlib.h>
@@ -21,13 +22,15 @@
 // TODO: reference additional headers your program requires here
 
 #include <d3d9.h>
+#include <d3dx9.h>
 
 #include <gl/gl.h>
 
 
-#include <Wyphon/Wyphon.h>
-#include <WyphonUtils/WyphonUtils.h>
+#include "../Wyphon/Wyphon.h"
+#include "../WyphonUtils/WyphonUtils.h"
 
 
 // include the Direct3D Library file
 #pragma comment (lib, "d3d9.lib")
+#pragma comment (lib, "d3dx9.lib")
