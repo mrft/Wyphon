@@ -1,6 +1,6 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Express 2012 for Windows Desktop
+# Visual Studio 2012
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ShareDataTest", "ShareDataTest\ShareDataTest.csproj", "{A57E56EC-2BA1-47D1-93E2-6406B7C4B7BC}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Wyphon", "Wyphon\Wyphon.vcxproj", "{688F8418-905F-425E-89A3-3F4BD70DF886}"
@@ -10,6 +10,8 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LocalMessageBroadcastDotNet", "LocalMessageBroadcast\LocalMessageBroadcastDotNet.csproj", "{962FF103-60E4-427D-A970-0B986C87C849}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "WyphonUtils", "WyphonUtils\WyphonUtils.vcxproj", "{0715FA79-EAF0-4659-84BB-01F123E76034}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "DXWyphonSender", "DXWyphonSender\DXWyphonSender.vcxproj", "{B6CB6582-0651-4916-A8D1-9A0B7B86A366}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -115,6 +117,28 @@ Global
 		{0715FA79-EAF0-4659-84BB-01F123E76034}.Release|x64.Build.0 = Release|x64
 		{0715FA79-EAF0-4659-84BB-01F123E76034}.Release|x86.ActiveCfg = Release|Win32
 		{0715FA79-EAF0-4659-84BB-01F123E76034}.Release|x86.Build.0 = Release|Win32
+		{B6CB6582-0651-4916-A8D1-9A0B7B86A366}.Debug|Any CPU.ActiveCfg = Debug|Win32
+		{B6CB6582-0651-4916-A8D1-9A0B7B86A366}.Debug|Mixed Platforms.ActiveCfg = Debug|Win32
+		{B6CB6582-0651-4916-A8D1-9A0B7B86A366}.Debug|Mixed Platforms.Build.0 = Debug|Win32
+		{B6CB6582-0651-4916-A8D1-9A0B7B86A366}.Debug|Mixed Platforms.Deploy.0 = Debug|Win32
+		{B6CB6582-0651-4916-A8D1-9A0B7B86A366}.Debug|Win32.ActiveCfg = Debug|Win32
+		{B6CB6582-0651-4916-A8D1-9A0B7B86A366}.Debug|Win32.Build.0 = Debug|Win32
+		{B6CB6582-0651-4916-A8D1-9A0B7B86A366}.Debug|Win32.Deploy.0 = Debug|Win32
+		{B6CB6582-0651-4916-A8D1-9A0B7B86A366}.Debug|x64.ActiveCfg = Debug|Win32
+		{B6CB6582-0651-4916-A8D1-9A0B7B86A366}.Debug|x86.ActiveCfg = Debug|Win32
+		{B6CB6582-0651-4916-A8D1-9A0B7B86A366}.Debug|x86.Build.0 = Debug|Win32
+		{B6CB6582-0651-4916-A8D1-9A0B7B86A366}.Debug|x86.Deploy.0 = Debug|Win32
+		{B6CB6582-0651-4916-A8D1-9A0B7B86A366}.Release|Any CPU.ActiveCfg = Release|Win32
+		{B6CB6582-0651-4916-A8D1-9A0B7B86A366}.Release|Mixed Platforms.ActiveCfg = Release|Win32
+		{B6CB6582-0651-4916-A8D1-9A0B7B86A366}.Release|Mixed Platforms.Build.0 = Release|Win32
+		{B6CB6582-0651-4916-A8D1-9A0B7B86A366}.Release|Mixed Platforms.Deploy.0 = Release|Win32
+		{B6CB6582-0651-4916-A8D1-9A0B7B86A366}.Release|Win32.ActiveCfg = Release|Win32
+		{B6CB6582-0651-4916-A8D1-9A0B7B86A366}.Release|Win32.Build.0 = Release|Win32
+		{B6CB6582-0651-4916-A8D1-9A0B7B86A366}.Release|Win32.Deploy.0 = Release|Win32
+		{B6CB6582-0651-4916-A8D1-9A0B7B86A366}.Release|x64.ActiveCfg = Release|Win32
+		{B6CB6582-0651-4916-A8D1-9A0B7B86A366}.Release|x86.ActiveCfg = Release|Win32
+		{B6CB6582-0651-4916-A8D1-9A0B7B86A366}.Release|x86.Build.0 = Release|Win32
+		{B6CB6582-0651-4916-A8D1-9A0B7B86A366}.Release|x86.Deploy.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
